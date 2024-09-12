@@ -1,6 +1,6 @@
 #include "SimpleTimer.h"
 
-#include "platform.h"
+#include "../platform.h"
 
 void SimpleTimer::restart() {
     _tmr = looper::millis();

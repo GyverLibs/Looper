@@ -2,10 +2,10 @@
 #include <inttypes.h>
 #include <stddef.h>
 
-#include "utils/flags.h"
-#include "utils/hash.h"
-#include "utils/list.h"
-#include "utils/macro.h"
+#include "../utils/flags.h"
+#include "../utils/hash.h"
+#include "../utils/list.h"
+#include "../utils/macro.h"
 
 #define TASK_ENABLED (1 << 0)
 #define TASK_IS_LISTENER (1 << 1)

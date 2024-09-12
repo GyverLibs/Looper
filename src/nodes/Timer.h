@@ -1,7 +1,7 @@
 #pragma once
 #include "CallbackData.h"
 #include "LoopTask.h"
-#include "utils/SimpleTimer.h"
+#include "../utils/SimpleTimer.h"
 
 // задача-интервальный таймер
 class LoopTimer : public LoopTask, public SimpleTimer {
