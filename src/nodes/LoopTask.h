@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <stddef.h>
 
+#include "../platform.h"
 #include "../utils/flags.h"
 #include "../utils/hash.h"
 #include "../utils/list.h"
@@ -29,7 +30,10 @@ LP_MAKE_CALLBACK(TaskCallback, void);
 
 class LoopTask : public looper::List<LoopTask>::Node {
    public:
-    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events) : _id(id), _cb(callback) {
+    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events) : _cb(callback) {
+#if LOOPER_USE_ID
+        _id = id;
+#endif
         sreg.set(TASK_ENABLED | type);
         if (states) enableStates();
         if (events) enableEvents();
@@ -102,7 +106,9 @@ class LoopTask : public looper::List<LoopTask>::Node {
     uint8_t _tickMask();
 
    private:
+#if LOOPER_USE_ID
     hash_t _id;
+#endif
     TaskCallback _cb;
     looper::Flags sreg;
 };

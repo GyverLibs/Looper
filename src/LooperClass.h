@@ -113,13 +113,19 @@ class LooperClass {
         void* data;
     };
 
-    LooperCallback _event_cb = nullptr;
     LoopTask* _thisTask = nullptr;
-    LoopTask* _source = nullptr;
-    void* _data = nullptr;
     looper::List<LoopTask> _tasks;
+
+#if LOOPER_USE_EVENTS
+    LoopTask* _source = nullptr;
+    LooperCallback _event_cb = nullptr;
+    void* _data = nullptr;
     looper::List<LoopTask> _lisns;
     looper::Stack<EventData, LOOPER_QUEUE_SIZE> _events;
+    
+    looper::List<LoopTask>* _getList(uint8_t idx);
+#endif
+
     tState _thisState = tState::None;
     bool _setup = true;
     bool _removed = false;
@@ -127,7 +133,6 @@ class LooperClass {
 
     void _sendEvent(EventData& evt);
     void _tickState(LoopTask* task, tState state);
-    looper::List<LoopTask>* _getList(uint8_t idx);
 };
 
 extern LooperClass Looper;

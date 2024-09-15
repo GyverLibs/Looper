@@ -2,8 +2,8 @@
 
 #include <limits.h>
 
-#include "nodes/Timer.h"
 #include "nodes/Thread.h"
+#include "nodes/Timer.h"
 #include "platform.h"
 
 #define LP_LIST_AMOUNT 2
@@ -26,14 +26,20 @@ void LooperClass::loop() {
         }
         if (_removed) _removed = false;
         else _thisTask = _thisTask->getPrev();
+#if LOOPER_USE_EVENTS
         while (_events.length()) _sendEvent(_events.pop());
+#endif
     }
+#if LOOPER_USE_EVENTS
     while (_events.length()) _sendEvent(_events.pop());
+#endif
     _thisState = tState::None;
 }
 
 void LooperClass::onEvent(LooperCallback callback) {
+#if LOOPER_USE_EVENTS
     _event_cb = callback;
+#endif
 }
 
 void LooperClass::restart() {
@@ -54,7 +60,11 @@ uint32_t LooperClass::nextTimerLeft() {
 }
 
 uint16_t LooperClass::length() {
+#if LOOPER_USE_EVENTS
     return _tasks.length() + _lisns.length();
+#else
+    return _tasks.length();
+#endif
 }
 
 void LooperClass::delay(uint32_t ms) {
@@ -65,14 +75,26 @@ void LooperClass::delay(uint32_t ms) {
 
 void LooperClass::add(LoopTask* task) {
     if (!task) return;
+
+#if LOOPER_USE_EVENTS
     task->isListener() ? _lisns.add(task) : _tasks.add(task);
+#else
+    if (!task->isListener()) _tasks.add(task);
+#endif
+
     if (!_setup) _tickState(task, tState::Setup);
 }
 
 void LooperClass::remove(LoopTask* task) {
     if (!task) return;
     _tickState(task, tState::Exit);
+
+#if LOOPER_USE_EVENTS
     task->isListener() ? _lisns.remove(task) : _tasks.remove(task);
+#else
+    if (!task->isListener()) _tasks.remove(task);
+#endif
+
     if (_thisTask == task) {
         _thisTask = _thisTask->getPrev();
         _removed = true;
@@ -95,8 +117,6 @@ void LooperClass::removeThis() {
     remove(thisTask());
 }
 
-bool LooperClass::eventBroadcast() { return _broadcast; }
-LoopTask* LooperClass::eventSource() { return _source; }
 LoopTask* LooperClass::thisTask() { return _removed ? nullptr : _thisTask; }
 LoopTimer* LooperClass::thisTimer() { return thisTaskAs<LoopTimer>(); }
 LoopThread* LooperClass::thisThread() { return thisTaskAs<LoopThread>(); }
@@ -106,8 +126,27 @@ bool LooperClass::thisExit() { return _thisState == tState::Exit; }
 bool LooperClass::thisEvent() { return _thisState == tState::Event; }
 bool LooperClass::thisLoop() { return _thisState == tState::Loop; }
 
+bool LooperClass::eventBroadcast() {
+#if LOOPER_USE_EVENTS
+    return _broadcast;
+#else
+    return 0;
+#endif
+}
+
+LoopTask* LooperClass::eventSource() {
+#if LOOPER_USE_EVENTS
+    return _source;
+#else
+    return nullptr;
+#endif
+}
 void* LooperClass::eventData() {
+#if LOOPER_USE_EVENTS
     return _thisState == tState::Event ? _data : nullptr;
+#else
+    return nullptr;
+#endif
 }
 
 void LooperClass::_sendEvent(EventData& evt) {
@@ -115,6 +154,7 @@ void LooperClass::_sendEvent(EventData& evt) {
 }
 
 void LooperClass::sendEvent(hash_t id, void* data) {
+#if LOOPER_USE_EVENTS
     LoopTask* source = _thisTask;
     tState stateTemp = _thisState;
     _thisState = tState::Event;
@@ -126,6 +166,7 @@ void LooperClass::sendEvent(hash_t id, void* data) {
         _event_cb(id);
     }
 
+#if LOOPER_USE_ID
     for (uint8_t i = 0; i < LP_LIST_AMOUNT; i++) {
         _thisTask = _getList(i)->getLast();
         while (_thisTask) {
@@ -140,11 +181,13 @@ void LooperClass::sendEvent(hash_t id, void* data) {
             else _thisTask = _thisTask->getPrev();
         }
     }
+#endif
 
     _broadcast = false;
     _source = nullptr;
     _thisTask = source;
     _thisState = stateTemp;
+#endif
 }
 
 void LooperClass::sendEvent(const char* id, void* data) {
@@ -152,7 +195,11 @@ void LooperClass::sendEvent(const char* id, void* data) {
 }
 
 bool LooperClass::pushEvent(hash_t id, void* data) {
+#if LOOPER_USE_EVENTS
     return _events.push(EventData{id, data});
+#else
+    return 0;
+#endif
 }
 
 bool LooperClass::pushEvent(const char* id, void* data) {
@@ -160,6 +207,7 @@ bool LooperClass::pushEvent(const char* id, void* data) {
 }
 
 LoopTask* LooperClass::getTask(hash_t id) {
+#if LOOPER_USE_EVENTS
     if (!id) return nullptr;
     for (uint8_t i = 0; i < LP_LIST_AMOUNT; i++) {
         LoopTask* p = _getList(i)->getLast();
@@ -168,6 +216,7 @@ LoopTask* LooperClass::getTask(hash_t id) {
             p = p->getPrev();
         }
     }
+#endif
     return nullptr;
 }
 
@@ -190,6 +239,8 @@ LoopTimer* LooperClass::getTimer(const char* id) {
     return getTimer(LPHr(id));
 }
 
+#if LOOPER_USE_EVENTS
 looper::List<LoopTask>* LooperClass::_getList(uint8_t idx) {
     return (looper::List<LoopTask>*[]){&_tasks, &_lisns}[idx];
 }
+#endif

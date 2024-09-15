@@ -20,7 +20,11 @@ void LoopTask::detach() {
 }
 
 hash_t LoopTask::id() {
+#if LOOPER_USE_ID
     return _id;
+#else
+    return 0;
+#endif
 }
 
 void LoopTask::enable() {
