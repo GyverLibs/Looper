@@ -3,6 +3,7 @@
 #include <limits.h>
 
 #include "nodes/Timer.h"
+#include "nodes/Thread.h"
 #include "platform.h"
 
 #define LP_LIST_AMOUNT 2
@@ -98,6 +99,7 @@ bool LooperClass::eventBroadcast() { return _broadcast; }
 LoopTask* LooperClass::eventSource() { return _source; }
 LoopTask* LooperClass::thisTask() { return _removed ? nullptr : _thisTask; }
 LoopTimer* LooperClass::thisTimer() { return thisTaskAs<LoopTimer>(); }
+LoopThread* LooperClass::thisThread() { return thisTaskAs<LoopThread>(); }
 tState LooperClass::thisState() { return _thisState; }
 bool LooperClass::thisSetup() { return _thisState == tState::Setup; }
 bool LooperClass::thisExit() { return _thisState == tState::Exit; }

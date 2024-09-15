@@ -9,6 +9,7 @@
 #include "utils/stack.h"
 
 class LoopTimer;
+class LoopThread;
 
 // ========= LooperClass =========
 class LooperClass {
@@ -55,6 +56,9 @@ class LooperClass {
 
     // указатель на текущую задачу-таймер
     LoopTimer* thisTimer();
+
+    // указатель на текущую задачу-поток
+    LoopThread* thisThread();
 
     // указатель на текущую задачу, кастуется в указанный тип
     template <typename T>
