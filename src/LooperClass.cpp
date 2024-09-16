@@ -85,9 +85,17 @@ void LooperClass::add(LoopTask* task) {
     if (!_setup) _tickState(task, tState::Setup);
 }
 
-void LooperClass::remove(LoopTask* task) {
+void LooperClass::remove(LoopTask* task, bool callExit) {
     if (!task) return;
-    _tickState(task, tState::Exit);
+
+    if (_thisTask == task) {
+        if (!_removed) {
+            _removed = true;
+            if (callExit) _tickState(task, tState::Exit);
+        }
+    } else {
+        if (callExit) _tickState(task, tState::Exit);
+    }
 
 #if LOOPER_USE_EVENTS
     task->isListener() ? _lisns.remove(task) : _tasks.remove(task);
@@ -95,10 +103,7 @@ void LooperClass::remove(LoopTask* task) {
     if (!task->isListener()) _tasks.remove(task);
 #endif
 
-    if (_thisTask == task) {
-        _thisTask = _thisTask->getPrev();
-        _removed = true;
-    }
+    if (_thisTask == task) _thisTask = _thisTask->getPrev();
 }
 
 void LooperClass::_tickState(LoopTask* task, tState state) {
@@ -113,8 +118,8 @@ void LooperClass::_tickState(LoopTask* task, tState state) {
     }
 }
 
-void LooperClass::removeThis() {
-    remove(thisTask());
+void LooperClass::removeThis(bool callExit) {
+    remove(thisTask(), callExit);
 }
 
 LoopTask* LooperClass::thisTask() { return _removed ? nullptr : _thisTask; }

@@ -51,22 +51,29 @@
 #define LP_THREAD_DATA(T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(data, [](data_arg) { _LP_THREAD_INNER(body) })
 #define LP_THREAD_DATA_(id, T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), data, [](data_arg) { _LP_THREAD_INNER(body) })
 
-// асинхронно ждать условия
-#define LP_WAIT(cond)                             \
+// выйти из потока и потом вернуться в эту точку
+#define LP_EXIT()                                 \
     Looper.thisThread()->_case = __COUNTER__ + 1; \
-    case __COUNTER__:                             \
-        if (!(cond)) return;
+    case __COUNTER__:
+
+// асинхронно ждать условия
+#define LP_WAIT(cond) \
+    LP_EXIT();        \
+    if (!(cond)) return;
 
 // асинхронно ждать события
 #define LP_WAIT_EVENT(cond) LP_WAIT(Looper.thisEvent());
 
 // асинхронно ждать время в мс
-#define LP_SLEEP(ms)                                \
+#define LP_DELAY(ms)                                \
     do {                                            \
         Looper.thisThread()->_resetTmr();           \
         LP_WAIT(Looper.thisThread()->_elapsed(ms)); \
         Looper.thisThread()->_stopTmr();            \
     } while (0);
+
+// устарело
+#define LP_SLEEP(ms) LP_DELAY(ms)
 
 // освободить семафор
 #define LP_SEM_SIGNAL(sem) sem++;

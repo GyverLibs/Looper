@@ -35,8 +35,8 @@ class LooperClass {
     // добавить задачу
     void add(LoopTask* task);
 
-    // убрать задачу
-    void remove(LoopTask* task);
+    // убрать задачу и вызвать обработчик выхода (опционально)
+    void remove(LoopTask* task, bool callExit = true);
 
     // получить указатель на задачу по id
     LoopTask* getTask(hash_t id);
@@ -66,8 +66,8 @@ class LooperClass {
         return static_cast<T*>(thisTask());
     }
 
-    // убрать текущую задачу из loop
-    void removeThis();
+    // убрать текущую задачу из loop и вызвать обработчик выхода (опционально)
+    void removeThis(bool callExit = true);
 
     // статус текущей задачи
     tState thisState();

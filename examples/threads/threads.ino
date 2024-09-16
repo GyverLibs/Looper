@@ -8,9 +8,9 @@ LP_THREAD({
 
     while (true) {
         digitalWrite(LED_BUILTIN, 1);
-        LP_SLEEP(500);
+        LP_DELAY(500);
         digitalWrite(LED_BUILTIN, 0);
-        LP_SLEEP(500);
+        LP_DELAY(500);
     }
 });
 // === blink
@@ -21,7 +21,7 @@ LP_THREAD({
 
 //     for (i = 0; i < 10; i++) {
 //         Serial.println(i);
-//         LP_SLEEP(500);
+//         LP_DELAY(500);
 //     }
 // });
 // === цикл
@@ -46,7 +46,7 @@ LP_THREAD({
 
 // LP_THREAD({
 //     LP_SEM_WAIT(sem);
-//     LP_SLEEP(500);
+//     LP_DELAY(500);
 //     val = random(100);
 //     LP_SEM_SIGNAL(sem);
 // });
@@ -57,7 +57,7 @@ LP_THREAD({
 //     Serial.println("wait event");
 //     LP_WAIT_EVENT();
 //     Serial.println("event!");
-//     LP_SLEEP(500);
+//     LP_DELAY(500);
 // });
 
 // LP_TIMER(1000, []() {
@@ -65,14 +65,14 @@ LP_THREAD({
 // });
 
 // LP_THREAD({
-//     LP_SLEEP(2000);
+//     LP_DELAY(2000);
 //     Looper.pushEvent("thread");
 // });
 // === event
 
 // === data
 // LP_THREAD_DATA(int, new int(3), int* data, {
-//     LP_SLEEP(500);
+//     LP_DELAY(500);
 //     Serial.println(*data);
 //     *data += 1;
 // });
@@ -80,7 +80,7 @@ LP_THREAD({
 // LoopThreadData<int> thread_manual(new int(3), [](int* data) {
 //     LP_THREAD_BEGIN();
 
-//     LP_SLEEP(500);
+//     LP_DELAY(500);
 //     Serial.println(*data);
 //     *data += 1;
 
