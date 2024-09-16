@@ -33,17 +33,22 @@
 #define LP_TIMER_(id, ms, func) LP_MAKE_(id, LoopTimer, ms, func)
 
 // THREAD
-#define LP_THREAD_BEGIN()                 \
-    switch (Looper.thisThread()->_case) { \
+#define _LP_THREAD_CASE Looper.thisThread()->_case
+#define _LP_THREAD_RESET() _LP_THREAD_CASE = 0;
+
+// начать поток
+#define LP_THREAD_BEGIN()      \
+    switch (_LP_THREAD_CASE) { \
         case 0:;
 
+// завершить поток
 #define LP_THREAD_END() \
     }                   \
-    Looper.thisThread()->_case = 0;
+    _LP_THREAD_RESET();
 
 #define _LP_THREAD_INNER(body) \
     LP_THREAD_BEGIN();         \
-    body;                      \
+    body                       \
     LP_THREAD_END();
 
 #define LP_THREAD(body) static LoopThread _LP_CONCAT(__loop_obj_, __COUNTER__)([]() { _LP_THREAD_INNER(body) })
@@ -51,18 +56,31 @@
 #define LP_THREAD_DATA(T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(data, [](data_arg) { _LP_THREAD_INNER(body) })
 #define LP_THREAD_DATA_(id, T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), data, [](data_arg) { _LP_THREAD_INNER(body) })
 
+// перезапустить поток (начать выполнение с начала)
+#define LP_RESTART()        \
+    do {                    \
+        _LP_THREAD_RESET(); \
+        return;             \
+    } while (0);
+
 // выйти из потока и потом вернуться в эту точку
-#define LP_EXIT()                                 \
-    Looper.thisThread()->_case = __COUNTER__ + 1; \
-    case __COUNTER__:
+#define LP_EXIT()                          \
+    do {                                   \
+        _LP_THREAD_CASE = __COUNTER__ + 1; \
+        return;                            \
+        case __COUNTER__:;                 \
+    } while (0);
 
 // асинхронно ждать условия
-#define LP_WAIT(cond) \
-    LP_EXIT();        \
-    if (!(cond)) return;
+#define LP_WAIT(cond)                      \
+    do {                                   \
+        _LP_THREAD_CASE = __COUNTER__ + 1; \
+        case __COUNTER__:                  \
+            if (!(cond)) return;           \
+    } while (0);
 
 // асинхронно ждать события
-#define LP_WAIT_EVENT(cond) LP_WAIT(Looper.thisEvent());
+#define LP_WAIT_EVENT() LP_WAIT(Looper.thisEvent());
 
 // асинхронно ждать время в мс
 #define LP_DELAY(ms)                                \
@@ -86,4 +104,4 @@
     } while (0);
 
 // семафор
-typedef uint8_t LP_SEM;
+typedef uint16_t LP_SEM;
