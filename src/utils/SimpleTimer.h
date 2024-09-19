@@ -5,8 +5,8 @@
 // базовый миллисекундный таймер
 class SimpleTimer {
    public:
-    SimpleTimer(uint32_t ms = 0) {
-        if (ms) restart(ms);
+    SimpleTimer(uint32_t ms = 0, bool start = true) {
+        if (start && ms) restart(ms);
     }
 
     // перезапустить
