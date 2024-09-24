@@ -16,8 +16,8 @@
 // отложить отправку события
 #define LP_PUSH_EVENT(id, data) Looper.pushEvent(LPH(id), data)
 
-#define LP_MAKE(type, ...) type _LP_CONCAT(__loop_obj_, __COUNTER__)(__VA_ARGS__)
-#define LP_MAKE_(id, type, ...) type _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), __VA_ARGS__)
+#define LP_MAKE(type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(__VA_ARGS__)
+#define LP_MAKE_(id, type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), __VA_ARGS__)
 #define LP_NEW(type, ...) new type(__VA_ARGS__)
 #define LP_NEW_(id, type, ...) new type(LPH(id), __VA_ARGS__)
 
