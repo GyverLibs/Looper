@@ -1,28 +1,19 @@
 #pragma once
-#include "Ticker.h"
+#include "../utils/SimpleTimer.h"
+#include "CallbackData.h"
+#include "LoopTask.h"
 
 // задача-поток, вызывается постоянно
-class LoopThread : public LoopTicker {
+class LoopThread : public LoopTask {
    public:
-    using LoopTicker::LoopTicker;
-
-    void _resetTmr() {
-        if (!_tmr) {
-            _tmr = looper::millis();
-            if (!_tmr) _tmr--;
-        }
-    }
-    void _stopTmr() {
-        _tmr = 0;
-    }
-    bool _elapsed(uint32_t ms) {
-        return looper::millis() - _tmr >= ms;
-    }
+    LoopThread(TaskCallback callback) : LoopThread((hash_t)0, callback) {}
+    LoopThread(const char* id, TaskCallback callback) : LoopThread(LPHr(id), callback) {}
+    LoopThread(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_IS_THREAD, true, true) {}
 
     uint16_t _case = 0;
+    SimpleTimer _tmr;
 
    private:
-    uint32_t _tmr = 0;
 };
 
 // поток с данными

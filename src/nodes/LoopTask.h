@@ -12,11 +12,13 @@
 #define TASK_IS_LISTENER (1 << 1)
 #define TASK_IS_TICKER (1 << 2)
 #define TASK_IS_TIMER (1 << 3)
-#define TASK_HAS_EVENTS (1 << 4)
-#define TASK_HAS_STATES (1 << 5)
+#define TASK_IS_THREAD (1 << 4)
+#define TASK_HAS_EVENTS (1 << 5)
+#define TASK_HAS_STATES (1 << 6)
 
 #define TASK_ENABLED_TICKER (TASK_ENABLED | TASK_IS_TICKER)
 #define TASK_ENABLED_TIMER (TASK_ENABLED | TASK_IS_TIMER)
+#define TASK_ENABLED_THREAD (TASK_ENABLED | TASK_IS_THREAD)
 
 enum class tState : uint8_t {
     None,
@@ -99,6 +101,9 @@ class LoopTask : public looper::List<LoopTask>::Node {
 
     // задача - обработчик событий
     bool isListener();
+    
+    // задача - поток
+    bool isThread();
 
     // запущен и слушает события
     bool canListen();

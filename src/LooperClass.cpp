@@ -17,10 +17,12 @@ void LooperClass::loop() {
     while (_thisTask) {
         looper::yield();
         switch (_thisTask->_tickMask()) {
-            case (TASK_ENABLED_TICKER):
+            case TASK_ENABLED_THREAD:
+            case TASK_ENABLED_TICKER:
                 _thisTask->exec();
                 break;
-            case (TASK_ENABLED_TIMER):
+
+            case TASK_ENABLED_TIMER:
                 static_cast<LoopTimer*>(_thisTask)->poll();
                 break;
         }
@@ -49,11 +51,19 @@ void LooperClass::restart() {
 uint32_t LooperClass::nextTimerLeft() {
     uint32_t next = UINT32_MAX;
     LoopTask* p = _tasks.getLast();
+    uint32_t left = 0;
     while (p) {
-        if (p->_tickMask() == TASK_ENABLED_TIMER) {
-            uint32_t left = static_cast<LoopTimer*>(p)->left();
-            if (left < next) next = left;
+        switch (p->_tickMask()) {
+            case TASK_ENABLED_THREAD:
+                left = static_cast<LoopThread*>(p)->_tmr.left();
+                break;
+
+            case TASK_ENABLED_TIMER:
+                left = static_cast<LoopTimer*>(p)->left();
+                break;
         }
+        if (!left) return 0;
+        if (next > left) next = left;
         p = p->getPrev();
     }
     return next == UINT32_MAX ? 0 : next;

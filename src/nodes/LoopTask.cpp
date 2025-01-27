@@ -69,11 +69,14 @@ bool LoopTask::isTicker() {
 bool LoopTask::isListener() {
     return sreg.read(TASK_IS_LISTENER);
 }
+bool LoopTask::isThread() {
+    return sreg.read(TASK_IS_THREAD);
+}
 
 bool LoopTask::canListen() {
     return sreg.isSet(TASK_ENABLED | TASK_HAS_EVENTS);
 }
 
 uint8_t LoopTask::_tickMask() {
-    return sreg.mask(TASK_ENABLED | TASK_IS_TICKER | TASK_IS_TIMER);
+    return sreg.mask(TASK_ENABLED | TASK_IS_TICKER | TASK_IS_TIMER | TASK_IS_THREAD);
 }
