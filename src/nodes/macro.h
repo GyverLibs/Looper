@@ -84,9 +84,6 @@
         LP_WAIT(Looper.thisThread()->_tmr.timeout()); \
     } while (0);
 
-// устарело
-#define LP_SLEEP(ms) LP_DELAY(ms)
-
 // освободить семафор
 #define LP_SEM_SIGNAL(sem) sem++;
 

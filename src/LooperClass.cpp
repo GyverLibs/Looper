@@ -254,6 +254,14 @@ LoopTimer* LooperClass::getTimer(const char* id) {
     return getTimer(LPHr(id));
 }
 
+LoopThread* LooperClass::getThread(hash_t id) {
+    return static_cast<LoopThread*>(getTask(id));
+}
+
+LoopThread* LooperClass::getThread(const char* id) {
+    return getThread(LPHr(id));
+}
+
 #if LOOPER_USE_EVENTS
 looper::List<LoopTask>* LooperClass::_getList(uint8_t idx) {
     return (looper::List<LoopTask>*[]){&_tasks, &_lisns}[idx];

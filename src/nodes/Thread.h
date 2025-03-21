@@ -10,6 +10,11 @@ class LoopThread : public LoopTask {
     LoopThread(const char* id, TaskCallback callback) : LoopThread(LPHr(id), callback) {}
     LoopThread(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_IS_THREAD, true, true) {}
 
+    // перезапустить поток
+    void restart() {
+        _case = 0;
+    }
+
     uint16_t _case = 0;
     SimpleTimer _tmr;
 

@@ -39,15 +39,18 @@ class LooperClass {
     void remove(LoopTask* task, bool callExit = true);
 
     // получить указатель на задачу по id
-    LoopTask* getTask(hash_t id);
-    LoopTask* getTask(const char* id);
-
     LoopTask* operator[](hash_t id);
     LoopTask* operator[](const char* id);
 
     // получить указатель на задачу по id
+    LoopTask* getTask(hash_t id);
+    LoopTask* getTask(const char* id);
+
     LoopTimer* getTimer(hash_t id);
     LoopTimer* getTimer(const char* id);
+
+    LoopThread* getThread(hash_t id);
+    LoopThread* getThread(const char* id);
 
     // ========= THIS =========
 
@@ -122,7 +125,7 @@ class LooperClass {
     void* _data = nullptr;
     looper::List<LoopTask> _lisns;
     looper::Stack<EventData, LOOPER_QUEUE_SIZE> _events;
-    
+
     looper::List<LoopTask>* _getList(uint8_t idx);
 #endif
 
