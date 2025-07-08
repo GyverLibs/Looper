@@ -16,7 +16,7 @@ class Stack {
 
     // получить с конца и удалить
     T& pop() {
-        return _stack[(_len--) - 1];
+        return _stack[--_len];
     }
 
     // кол-во элементов
