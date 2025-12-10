@@ -11,8 +11,9 @@
 LooperClass Looper;
 
 void LooperClass::loop() {
-    if (_thisState != tState::None) return;
+    // if (_thisState != tState::None) return;
     _thisState = _setup ? (_setup = false, tState::Setup) : tState::Loop;
+
     _thisTask = _tasks.getLast();
     while (_thisTask) {
         looper::yield();
@@ -28,14 +29,12 @@ void LooperClass::loop() {
         }
         if (_removed) _removed = false;
         else _thisTask = _thisTask->getPrev();
-#if LOOPER_USE_EVENTS
-        while (_events.length()) _sendEvent(_events.pop());
-#endif
     }
+
 #if LOOPER_USE_EVENTS
     while (_events.length()) _sendEvent(_events.pop());
 #endif
-    _thisState = tState::None;
+    // _thisState = tState::None;
 }
 
 void LooperClass::onEvent(LooperCallback callback) {
@@ -78,9 +77,14 @@ uint16_t LooperClass::length() {
 }
 
 void LooperClass::delay(uint32_t ms) {
-    if (_thisState != tState::None) return;
+    LoopTask* taskTemp = _thisTask;
+    if (taskTemp) taskTemp->disable();
+
     uint32_t tmr = looper::millis();
     while (looper::millis() - tmr < ms) loop();
+
+    if (taskTemp) taskTemp->enable();
+    _thisTask = taskTemp;
 }
 
 void LooperClass::add(LoopTask* task) {
