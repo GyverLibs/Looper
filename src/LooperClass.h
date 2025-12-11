@@ -129,8 +129,7 @@ class LooperClass {
     looper::List<LoopTask>* _getList(uint8_t idx);
 #endif
 
-    tState _thisState = tState::None;
-    bool _setup = true;
+    tState _thisState = tState::Loop;
     bool _removed = false;
     bool _broadcast = false;
 

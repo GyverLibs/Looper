@@ -15,13 +15,16 @@
 #define TASK_IS_THREAD (1 << 4)
 #define TASK_HAS_EVENTS (1 << 5)
 #define TASK_HAS_STATES (1 << 6)
+#define TASK_SETUP (1 << 7)
 
 #define TASK_ENABLED_TICKER (TASK_ENABLED | TASK_IS_TICKER)
 #define TASK_ENABLED_TIMER (TASK_ENABLED | TASK_IS_TIMER)
 #define TASK_ENABLED_THREAD (TASK_ENABLED | TASK_IS_THREAD)
+#define TASK_SETUP_TICKER (TASK_ENABLED_TICKER | TASK_SETUP)
+#define TASK_SETUP_TIMER (TASK_ENABLED_TIMER | TASK_SETUP)
+#define TASK_SETUP_THREAD (TASK_ENABLED_THREAD | TASK_SETUP)
 
 enum class tState : uint8_t {
-    None,
     Setup,
     Loop,
     Exit,
@@ -32,24 +35,18 @@ LP_MAKE_CALLBACK(TaskCallback, void);
 
 class LoopTask : public looper::List<LoopTask>::Node {
    public:
-    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events) : _cb(callback) {
-#if LOOPER_USE_ID
-        _id = id;
-#endif
-        sreg.set(TASK_ENABLED | type);
-        if (states) enableStates();
-        if (events) enableEvents();
-        addLoop();
-    }
-    ~LoopTask() {
-        removeLoop();
-    }
+    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events);
+
+    ~LoopTask() { removeLoop(); }
 
     // добавить в loop
     void addLoop();
 
     // убрать из loop
     void removeLoop();
+
+    // спровоцировать вызов со статусом Setup
+    void restart();
 
     // вызвать обработчик
     void exec();
@@ -101,7 +98,7 @@ class LoopTask : public looper::List<LoopTask>::Node {
 
     // задача - обработчик событий
     bool isListener();
-    
+
     // задача - поток
     bool isThread();
 
@@ -109,6 +106,7 @@ class LoopTask : public looper::List<LoopTask>::Node {
     bool canListen();
 
     uint8_t _tickMask();
+    void _settle();
 
    private:
 #if LOOPER_USE_ID

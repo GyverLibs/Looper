@@ -2,11 +2,26 @@
 
 #include "LooperClass.h"
 
+LoopTask::LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events) : _cb(callback) {
+#if LOOPER_USE_ID
+    _id = id;
+#endif
+    sreg.set(TASK_ENABLED | type);
+    if (states) enableStates();
+    if (events) enableEvents();
+    addLoop();
+}
+
 void LoopTask::addLoop() {
     Looper.add(this);
+    restart();
 }
 void LoopTask::removeLoop() {
     Looper.remove(this);
+}
+
+void LoopTask::restart() {
+    sreg.set(TASK_SETUP);
 }
 
 void LoopTask::exec() {
@@ -78,5 +93,8 @@ bool LoopTask::canListen() {
 }
 
 uint8_t LoopTask::_tickMask() {
-    return sreg.mask(TASK_ENABLED | TASK_IS_TICKER | TASK_IS_TIMER | TASK_IS_THREAD);
+    return sreg.mask(TASK_ENABLED | TASK_IS_TICKER | TASK_IS_TIMER | TASK_IS_THREAD | TASK_SETUP);
+}
+void LoopTask::_settle() {
+    sreg.clear(TASK_SETUP);
 }

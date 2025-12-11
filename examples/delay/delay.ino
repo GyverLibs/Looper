@@ -5,7 +5,7 @@ LP_TIMER(500, []() {
     Serial.println("hello 1");
 });
 
-LP_TIMER(1000, []() {
+LP_TICKER([]() {
     Serial.println("hello 2");
     Looper.delay(5000);
 });

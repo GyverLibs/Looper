@@ -11,13 +11,18 @@
 LooperClass Looper;
 
 void LooperClass::loop() {
-    // if (_thisState != tState::None) return;
-    _thisState = _setup ? (_setup = false, tState::Setup) : tState::Loop;
-
     _thisTask = _tasks.getLast();
+
     while (_thisTask) {
         looper::yield();
         switch (_thisTask->_tickMask()) {
+            case TASK_SETUP_TICKER:
+            case TASK_SETUP_TIMER:
+            case TASK_SETUP_THREAD:
+                _tickState(_thisTask, tState::Setup);
+                _thisTask->_settle();
+                break;
+
             case TASK_ENABLED_THREAD:
             case TASK_ENABLED_TICKER:
                 _thisTask->exec();
@@ -34,7 +39,6 @@ void LooperClass::loop() {
 #if LOOPER_USE_EVENTS
     while (_events.length()) _sendEvent(_events.pop());
 #endif
-    // _thisState = tState::None;
 }
 
 void LooperClass::onEvent(LooperCallback callback) {
@@ -44,7 +48,11 @@ void LooperClass::onEvent(LooperCallback callback) {
 }
 
 void LooperClass::restart() {
-    _setup = true;
+    LoopTask* p = _tasks.getLast();
+    while (p) {
+        p->restart();
+        p = p->getPrev();
+    }
 }
 
 uint32_t LooperClass::nextTimerLeft() {
@@ -77,10 +85,10 @@ uint16_t LooperClass::length() {
 }
 
 void LooperClass::delay(uint32_t ms) {
+    uint32_t tmr = looper::millis();
     LoopTask* taskTemp = _thisTask;
     if (taskTemp) taskTemp->disable();
 
-    uint32_t tmr = looper::millis();
     while (looper::millis() - tmr < ms) loop();
 
     if (taskTemp) taskTemp->enable();
@@ -95,8 +103,6 @@ void LooperClass::add(LoopTask* task) {
 #else
     if (!task->isListener()) _tasks.add(task);
 #endif
-
-    if (!_setup) _tickState(task, tState::Setup);
 }
 
 void LooperClass::remove(LoopTask* task, bool callExit) {
@@ -121,15 +127,14 @@ void LooperClass::remove(LoopTask* task, bool callExit) {
 }
 
 void LooperClass::_tickState(LoopTask* task, tState state) {
-    if (task->hasStates()) {
-        tState stateTemp = _thisState;
-        LoopTask* taskTemp = _thisTask;
-        _thisState = state;
-        _thisTask = task;
-        task->exec();
-        _thisState = stateTemp;
-        _thisTask = taskTemp;
-    }
+    if (!task->hasStates()) return;
+    tState stateTemp = _thisState;
+    LoopTask* taskTemp = _thisTask;
+    _thisState = state;
+    _thisTask = task;
+    task->exec();
+    _thisState = stateTemp;
+    _thisTask = taskTemp;
 }
 
 void LooperClass::removeThis(bool callExit) {
