@@ -89,7 +89,10 @@ void LooperClass::delay(uint32_t ms) {
     LoopTask* taskTemp = _thisTask;
     if (taskTemp) taskTemp->disable();
 
-    while (looper::millis() - tmr < ms) loop();
+    while (looper::millis() - tmr < ms) {
+        looper::yield();
+        loop();
+    }
 
     if (taskTemp) taskTemp->enable();
     _thisTask = taskTemp;
