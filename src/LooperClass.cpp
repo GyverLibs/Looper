@@ -110,14 +110,10 @@ void LooperClass::add(LoopTask* task) {
 
 void LooperClass::remove(LoopTask* task, bool callExit) {
     if (!task) return;
-
+    if (callExit) _tickState(task, tState::Exit);
     if (_thisTask == task) {
-        if (!_removed) {
-            _removed = true;
-            if (callExit) _tickState(task, tState::Exit);
-        }
-    } else {
-        if (callExit) _tickState(task, tState::Exit);
+        _removed = true;
+        _thisTask = _thisTask->getPrev();
     }
 
 #if LOOPER_USE_EVENTS
@@ -125,8 +121,6 @@ void LooperClass::remove(LoopTask* task, bool callExit) {
 #else
     if (!task->isListener()) _tasks.remove(task);
 #endif
-
-    if (_thisTask == task) _thisTask = _thisTask->getPrev();
 }
 
 void LooperClass::_tickState(LoopTask* task, tState state) {
