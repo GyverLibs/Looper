@@ -7,7 +7,7 @@ class TaskCallbackData {
 
    public:
     TaskCallbackData(T* data, DataCallback callback) : _data(data), _cb(callback) {}
-    
+
     // подключить новые данные
     void setData(T* data) {
         _data = data;

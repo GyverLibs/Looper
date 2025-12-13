@@ -1,6 +1,6 @@
 // заменить для работы на других платформах
 
-#include "platform.h"
+#include "./platform.h"
 
 #include <Arduino.h>
 

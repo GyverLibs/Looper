@@ -15,7 +15,7 @@ void makeTimer(int period, int count, const char* text) {
 
         if (!data->count--) {
             delete data;
-            delete Looper.thisTask();
+            delete LP.thisTask();
         }
     });
 }
@@ -27,5 +27,5 @@ void setup() {
 }
 
 void loop() {
-    Looper.loop();
+    LP.loop();
 }

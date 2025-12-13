@@ -2,14 +2,14 @@
 #include <Looper.h>
 
 LP_TICKER_("tick0", []() {
-    switch (Looper.thisState()) {
+    switch (LP.thisState()) {
         case tState::Setup:
             Serial.println("SETUP");
             break;
 
         case tState::Loop:
             Serial.println("LOOP");
-            Looper.thisTask()->removeLoop();
+            LP.thisTask()->removeLoop();
             break;
 
         case tState::Exit:
@@ -31,5 +31,5 @@ void setup() {
 }
 
 void loop() {
-    Looper.loop();
+    LP.loop();
 }

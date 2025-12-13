@@ -8,25 +8,22 @@
 #include "../utils/list.h"
 #include "../utils/macro.h"
 
-#define TASK_ENABLED (1 << 0)
-#define TASK_IS_LISTENER (1 << 1)
-#define TASK_IS_TICKER (1 << 2)
-#define TASK_IS_TIMER (1 << 3)
-#define TASK_IS_THREAD (1 << 4)
-#define TASK_HAS_EVENTS (1 << 5)
-#define TASK_HAS_STATES (1 << 6)
-#define TASK_SETUP (1 << 7)
+#define TASK_IS_LISTENER 0
+#define TASK_IS_TICKER 1
+#define TASK_IS_THREAD 2
+#define TASK_IS_TIMER 3
 
-#define TASK_ENABLED_TICKER (TASK_ENABLED | TASK_IS_TICKER)
-#define TASK_ENABLED_TIMER (TASK_ENABLED | TASK_IS_TIMER)
-#define TASK_ENABLED_THREAD (TASK_ENABLED | TASK_IS_THREAD)
-#define TASK_SETUP_TICKER (TASK_ENABLED_TICKER | TASK_SETUP)
-#define TASK_SETUP_TIMER (TASK_ENABLED_TIMER | TASK_SETUP)
-#define TASK_SETUP_THREAD (TASK_ENABLED_THREAD | TASK_SETUP)
+#define TASK_TYPE_MASK (TASK_IS_LISTENER | TASK_IS_TICKER | TASK_IS_THREAD | TASK_IS_TIMER)
+#define TASK_DISABLED (1 << 2)
+#define TASK_PAUSED (1 << 3)
+#define TASK_STATES (1 << 4)
+#define TASK_ADDED (1 << 5)
+#define TASK_SETUP (1 << 6)
+#define TASK_EXIT (1 << 7)
 
 enum class tState : uint8_t {
-    Setup,
     Loop,
+    Setup,
     Exit,
     Event,
 };
@@ -35,9 +32,8 @@ LP_MAKE_CALLBACK(TaskCallback, void);
 
 class LoopTask : public looper::List<LoopTask>::Node {
    public:
-    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events);
-
-    ~LoopTask() { removeLoop(); }
+    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states);
+    ~LoopTask();
 
     // добавить в loop
     void addLoop();
@@ -46,7 +42,7 @@ class LoopTask : public looper::List<LoopTask>::Node {
     void removeLoop();
 
     // спровоцировать вызов со статусом Setup
-    void restart();
+    void reset();
 
     // вызвать обработчик
     void exec();
@@ -66,29 +62,11 @@ class LoopTask : public looper::List<LoopTask>::Node {
     // выключить задачу
     void disable();
 
-    // задача запущена
-    bool isEnabled();
-
-    // включить если выключена и наоборот
+    // переключить задачу
     void toggle();
 
-    // включить обработку событий
-    void enableEvents();
-
-    // отключить обработку событий
-    void disableEvents();
-
-    // включена обработка событий
-    bool hasEvents();
-
-    // включить статусы Setup Exit
-    void enableStates();
-
-    // выключить статусы Setup Exit
-    void disableStates();
-
-    // включены статусы Setup Exit
-    bool hasStates();
+    // задача запущена
+    bool isEnabled();
 
     // задача - таймер
     bool isTimer();
@@ -102,16 +80,30 @@ class LoopTask : public looper::List<LoopTask>::Node {
     // задача - поток
     bool isThread();
 
-    // запущен и слушает события
+    // тип задачи
+    uint8_t getType();
+
+    // добавлена в Looper
+    bool isAdded();
+
+    // имеет статусы Setup и Exit
+    bool hasStates();
+
+    // может принять Event
     bool canListen();
 
-    uint8_t _tickMask();
-    void _settle();
+    uint8_t _getMask(uint8_t mask);
+    void _markSettled();
+    void _markExit();
+    void _pause();
+    void _resume();
+    void _markAdded();
+    void _markRemoved();
 
    private:
 #if LOOPER_USE_ID
     hash_t _id;
 #endif
     TaskCallback _cb;
-    looper::Flags sreg;
+    looper::Flags _f;
 };

@@ -1,13 +1,13 @@
 #pragma once
-#include "CallbackData.h"
-#include "LoopTask.h"
+#include "./CallbackData.h"
+#include "./LoopTask.h"
 
 // задача-тикер, вызывается постоянно
 class LoopTicker : public LoopTask {
    public:
-    LoopTicker(TaskCallback callback, bool states = true, bool events = true) : LoopTicker((hash_t)0, callback, states, events) {}
-    LoopTicker(const char* id, TaskCallback callback, bool states = true, bool events = true) : LoopTicker(LPHr(id), callback, states, events) {}
-    LoopTicker(hash_t id, TaskCallback callback, bool states = true, bool events = true) : LoopTask(id, callback, TASK_IS_TICKER, states, events) {}
+    LoopTicker(TaskCallback callback) : LoopTicker((hash_t)0, callback) {}
+    LoopTicker(const char* id, TaskCallback callback) : LoopTicker(LPHr(id), callback) {}
+    LoopTicker(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_IS_TICKER, true) {}
 };
 
 // тикер для создания своих классов
@@ -26,7 +26,7 @@ class LoopTickerBase : public LoopTicker {
     using LoopTask::exec;
 
     static void _exec() {
-        Looper.thisTaskAs<LoopTickerBase>()->exec();
+        LP.thisTaskAs<LoopTickerBase>()->exec();
     }
 };
 
@@ -45,6 +45,6 @@ class LoopTickerData : public LoopTicker, public TaskCallbackData<T> {
     using LoopTask::detach;
 
     static void _exec() {
-        Looper.thisTaskAs<LoopTickerData<T>>()->TaskCallbackData<T>::exec();
+        LP.thisTaskAs<LoopTickerData<T>>()->TaskCallbackData<T>::exec();
     }
 };

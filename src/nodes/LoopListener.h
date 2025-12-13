@@ -1,12 +1,12 @@
 #pragma once
-#include "CallbackData.h"
-#include "LoopTask.h"
+#include "./CallbackData.h"
+#include "./LoopTask.h"
 
 // задача-обработчик событий, вызывается при событии
 class LoopListener : public LoopTask {
    public:
-    LoopListener(const char* id, TaskCallback callback, bool states = false) : LoopListener(LPHr(id), callback, states) {}
-    LoopListener(hash_t id, TaskCallback callback, bool states = false) : LoopTask(id, callback, TASK_IS_LISTENER, states, true) {}
+    LoopListener(const char* id, TaskCallback callback) : LoopListener(LPHr(id), callback) {}
+    LoopListener(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_IS_LISTENER, false) {}
 };
 
 // обработчик событий для создания своих классов
@@ -24,7 +24,7 @@ class LoopListenerBase : public LoopListener {
     using LoopTask::exec;
 
     static void _exec() {
-        Looper.thisTaskAs<LoopListenerBase>()->exec();
+        LP.thisTaskAs<LoopListenerBase>()->exec();
     }
 };
 
@@ -42,6 +42,6 @@ class LoopListenerData : public LoopListener, public TaskCallbackData<T> {
     using LoopTask::detach;
 
     static void _exec() {
-        Looper.thisTaskAs<LoopListenerData<T>>()->TaskCallbackData<T>::exec();
+        LP.thisTaskAs<LoopListenerData<T>>()->TaskCallbackData<T>::exec();
     }
 };

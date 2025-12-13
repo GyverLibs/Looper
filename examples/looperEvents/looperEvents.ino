@@ -2,19 +2,19 @@
 #include <Looper.h>
 
 LP_TIMER(500, []() {
-    Looper.pushEvent("timer");
+    LP.pushEvent("timer");
 });
 
 void setup() {
     Serial.begin(115200);
 
-    Looper.onEvent([](hash_t id) {
+    LP.onEvent([](hash_t id) {
         Serial.println(id);
     });
 
-    Looper.sendEvent("kek");
+    LP.sendEvent("kek");
 }
 
 void loop() {
-    Looper.loop();
+    LP.loop();
 }

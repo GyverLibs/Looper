@@ -1,8 +1,8 @@
 #pragma once
 
-#include "LooperClass.h"
-#include "nodes/Listener.h"
-#include "nodes/Thread.h"
-#include "nodes/Ticker.h"
-#include "nodes/Timer.h"
-#include "nodes/macro.h"
+#include "./LooperClass.h"
+#include "./nodes/LoopListener.h"
+#include "./nodes/LoopThread.h"
+#include "./nodes/LoopTicker.h"
+#include "./nodes/LoopTimer.h"
+#include "./nodes/macro.h"

@@ -1,12 +1,12 @@
 #pragma once
 #include <inttypes.h>
 
-#include "nodes/LoopTask.h"
-#include "platform.h"
-#include "utils/hash.h"
-#include "utils/list.h"
-#include "utils/macro.h"
-#include "utils/stack.h"
+#include "./nodes/LoopTask.h"
+#include "./platform.h"
+#include "./utils/hash.h"
+#include "./utils/list.h"
+#include "./utils/macro.h"
+#include "./utils/stack.h"
 
 class LoopTimer;
 class LoopThread;
@@ -18,12 +18,12 @@ class LooperClass {
    public:
     // ========= SYSTEM =========
     // вызывать в loop
-    void loop();
+    void loop(bool main = true);
 
     // вызвать сигнал setup у всех задач
-    void restart();
+    void reset();
 
-    // количество задач в стеке
+    // количество задач
     uint16_t length();
 
     // время до срабатывания следующего таймера
@@ -35,7 +35,7 @@ class LooperClass {
     // добавить задачу
     void add(LoopTask* task);
 
-    // убрать задачу и вызвать обработчик выхода (опционально)
+    // убрать задачу (опционально вызвать обработчик выхода)
     void remove(LoopTask* task, bool callExit = true);
 
     // получить указатель на задачу по id
@@ -66,7 +66,7 @@ class LooperClass {
     // указатель на текущую задачу, кастуется в указанный тип
     template <typename T>
     T* thisTaskAs() {
-        return static_cast<T*>(thisTask());
+        return static_cast<T*>(_thisTask);
     }
 
     // убрать текущую задачу из loop и вызвать обработчик выхода (опционально)
@@ -110,31 +110,30 @@ class LooperClass {
     void onEvent(LooperCallback callback);
 
     // ============ PRIVATE ============
+    void _removeNow(LoopTask* task);
+
    private:
     struct EventData {
         hash_t id;
         void* data;
     };
 
-    LoopTask* _thisTask = nullptr;
-    looper::List<LoopTask> _tasks;
-
 #if LOOPER_USE_EVENTS
-    LoopTask* _source = nullptr;
-    LooperCallback _event_cb = nullptr;
-    void* _data = nullptr;
-    looper::List<LoopTask> _lisns;
     looper::Stack<EventData, LOOPER_QUEUE_SIZE> _events;
-
-    looper::List<LoopTask>* _getList(uint8_t idx);
+    LooperCallback _event_cb = nullptr;
+    LoopTask* _thisSource = nullptr;
+    void* _thisData = nullptr;
+    bool _thisBroad = false;
 #endif
 
+    looper::List<LoopTask> _tasks;
+    LoopTask* _thisTask = nullptr;
     tState _thisState = tState::Loop;
     bool _removed = false;
-    bool _broadcast = false;
 
     void _sendEvent(EventData& evt);
-    void _tickState(LoopTask* task, tState state);
+    void _execState(tState state);
 };
 
-extern LooperClass Looper;
+extern LooperClass LP;
+extern LooperClass& Looper;

@@ -2,9 +2,13 @@
 
 #include "../platform.h"
 
+SimpleTimer::SimpleTimer(uint32_t ms, bool start) {
+    if (start && ms) restart(ms);
+}
+
 void SimpleTimer::restart() {
     _tmr = looper::millis();
-    if (!_tmr) _tmr--;
+    if (!_tmr) --_tmr;
 }
 
 void SimpleTimer::restart(uint32_t ms, uint32_t sec, uint16_t min, uint16_t hour, uint16_t day) {
@@ -26,7 +30,7 @@ bool SimpleTimer::running() {
 
 void SimpleTimer::force() {
     _tmr = looper::millis() - _prd;
-    if (!_tmr) _tmr--;
+    if (!_tmr) --_tmr;
 }
 
 bool SimpleTimer::ready() {
@@ -40,7 +44,7 @@ uint32_t SimpleTimer::getPeriod() {
 uint32_t SimpleTimer::left() {
     if (!_tmr) return 0;
     uint32_t dif = looper::millis() - _tmr;
-    return dif >= _prd ? 0 : _prd - dif;
+    return (dif >= _prd) ? 0 : (_prd - dif);
     // return _tmr ? ((looper::millis() - _tmr >= _prd) ? 0 : (_prd - (looper::millis() - _tmr))) : 0;
 }
 

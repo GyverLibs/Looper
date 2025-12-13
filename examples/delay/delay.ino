@@ -7,12 +7,12 @@ LP_TIMER(500, []() {
 
 LP_TICKER([]() {
     Serial.println("hello 2");
-    Looper.delay(5000);
+    LP.delay(5000);
 });
 
 void setup() {
     Serial.begin(115200);
 }
 void loop() {
-    Looper.loop();
+    LP.loop();
 }

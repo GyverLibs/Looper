@@ -1,27 +1,28 @@
 #include "LoopTask.h"
 
-#include "LooperClass.h"
+#include "../LooperClass.h"
 
-LoopTask::LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events) : _cb(callback) {
+LoopTask::LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states) : _cb(callback) {
 #if LOOPER_USE_ID
     _id = id;
 #endif
-    sreg.set(TASK_ENABLED | type);
-    if (states) enableStates();
-    if (events) enableEvents();
-    addLoop();
+    _f.set(type & TASK_TYPE_MASK);
+    if (states) _f.set(TASK_STATES);
+    LP.add(this);
+}
+LoopTask::~LoopTask() {
+    LP._removeNow(this);
 }
 
 void LoopTask::addLoop() {
-    Looper.add(this);
-    restart();
+    LP.add(this);
 }
 void LoopTask::removeLoop() {
-    Looper.remove(this);
+    LP.remove(this);
 }
 
-void LoopTask::restart() {
-    sreg.set(TASK_SETUP);
+void LoopTask::reset() {
+    if (hasStates()) _f.set(TASK_SETUP);
 }
 
 void LoopTask::exec() {
@@ -43,58 +44,64 @@ hash_t LoopTask::id() {
 }
 
 void LoopTask::enable() {
-    sreg.set(TASK_ENABLED);
+    _f.clear(TASK_DISABLED);
 }
 void LoopTask::disable() {
-    sreg.clear(TASK_ENABLED);
-}
-bool LoopTask::isEnabled() {
-    return sreg.read(TASK_ENABLED);
+    _f.set(TASK_DISABLED);
 }
 void LoopTask::toggle() {
-    sreg.write(TASK_ENABLED, !sreg.read(TASK_ENABLED));
+    isEnabled() ? disable() : enable();
 }
-
-void LoopTask::enableEvents() {
-    sreg.set(TASK_HAS_EVENTS);
-}
-void LoopTask::disableEvents() {
-    sreg.clear(TASK_HAS_EVENTS);
-}
-bool LoopTask::hasEvents() {
-    return sreg.read(TASK_HAS_EVENTS);
-}
-
-void LoopTask::enableStates() {
-    sreg.set(TASK_HAS_STATES);
-}
-void LoopTask::disableStates() {
-    sreg.clear(TASK_HAS_STATES);
-}
-bool LoopTask::hasStates() {
-    return sreg.read(TASK_HAS_STATES);
+bool LoopTask::isEnabled() {
+    return !_f.read(TASK_DISABLED);
 }
 
 bool LoopTask::isTimer() {
-    return sreg.read(TASK_IS_TIMER);
+    return getType() == TASK_IS_TIMER;
 }
 bool LoopTask::isTicker() {
-    return sreg.read(TASK_IS_TICKER);
+    return getType() == TASK_IS_TICKER;
 }
 bool LoopTask::isListener() {
-    return sreg.read(TASK_IS_LISTENER);
+    return getType() == TASK_IS_LISTENER;
 }
 bool LoopTask::isThread() {
-    return sreg.read(TASK_IS_THREAD);
+    return getType() == TASK_IS_THREAD;
 }
 
+uint8_t LoopTask::getType() {
+    return _f.mask(TASK_TYPE_MASK);
+}
+
+bool LoopTask::isAdded() {
+    return _f.read(TASK_ADDED);
+}
+
+bool LoopTask::hasStates() {
+    return _f.read(TASK_STATES);
+}
 bool LoopTask::canListen() {
-    return sreg.isSet(TASK_ENABLED | TASK_HAS_EVENTS);
+    return !isTimer() && !_f.mask(TASK_PAUSED | TASK_DISABLED | TASK_SETUP | TASK_EXIT);
 }
 
-uint8_t LoopTask::_tickMask() {
-    return sreg.mask(TASK_ENABLED | TASK_IS_TICKER | TASK_IS_TIMER | TASK_IS_THREAD | TASK_SETUP);
+uint8_t LoopTask::_getMask(uint8_t mask) {
+    return _f.mask(mask);
 }
-void LoopTask::_settle() {
-    sreg.clear(TASK_SETUP);
+void LoopTask::_markSettled() {
+    _f.clear(TASK_SETUP);
+}
+void LoopTask::_markExit() {
+    _f.set(TASK_EXIT);
+}
+void LoopTask::_pause() {
+    _f.set(TASK_PAUSED);
+}
+void LoopTask::_resume() {
+    _f.clear(TASK_PAUSED);
+}
+void LoopTask::_markAdded() {
+    _f.set(TASK_ADDED);
+}
+void LoopTask::_markRemoved() {
+    _f.clear(TASK_ADDED);
 }

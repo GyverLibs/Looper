@@ -26,7 +26,7 @@ class List {
 
     // добавить
     bool add(T* node) {
-        if (!node || has(node)) return false;
+        if (!node) return false;
         node->_prev = _last;
         _last = node;
         return true;
@@ -48,25 +48,27 @@ class List {
     }
 
     // удалить
-    void remove(T& node) {
-        remove(&node);
+    bool remove(T& node) {
+        return remove(&node);
     }
 
     // удалить
-    void remove(T* node) {
-        if (!node) return;
+    bool remove(T* node) {
+        if (!node) return false;
         if (_last == node) {
             _last = _last->_prev;
+            return true;
         } else {
             T* p = _last;
             while (p) {
                 if (p->_prev == node) {
                     p->_prev = p->_prev->_prev;
-                    break;
+                    return true;
                 }
                 p = p->_prev;
             }
         }
+        return false;
     }
 
     // длина списка

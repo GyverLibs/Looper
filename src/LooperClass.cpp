@@ -2,43 +2,60 @@
 
 #include <limits.h>
 
-#include "nodes/Thread.h"
-#include "nodes/Timer.h"
-#include "platform.h"
+#include "./nodes/LoopThread.h"
+#include "./nodes/LoopTimer.h"
+#include "./platform.h"
 
-#define LP_LIST_AMOUNT 2
+LooperClass LP;
+LooperClass& Looper = LP;
 
-LooperClass Looper;
-
-void LooperClass::loop() {
+void LooperClass::loop(bool main) {
+    // !!! main loop: _thisTask & _thisState not saved
     _thisTask = _tasks.getLast();
 
     while (_thisTask) {
-        looper::yield();
-        switch (_thisTask->_tickMask()) {
-            case TASK_SETUP_TICKER:
-            case TASK_SETUP_TIMER:
-            case TASK_SETUP_THREAD:
-                _tickState(_thisTask, tState::Setup);
-                _thisTask->_settle();
-                break;
+        if (main) {
+            _removed = false;
 
-            case TASK_ENABLED_THREAD:
-            case TASK_ENABLED_TICKER:
+            switch (_thisTask->_getMask(TASK_SETUP | TASK_EXIT)) {
+                case TASK_SETUP:
+                case TASK_SETUP | TASK_EXIT:
+                    _thisTask->_markSettled();
+                    _execState(tState::Setup);
+                    if (_removed) return;
+                    break;
+
+                case TASK_EXIT:
+                    _thisTask->_markRemoved();
+                    _tasks.remove(_thisTask);
+                    _execState(tState::Exit);
+                    return;
+            }
+        }
+
+        switch (_thisTask->_getMask(TASK_TYPE_MASK | TASK_DISABLED | TASK_PAUSED | TASK_SETUP | TASK_EXIT)) {
+            case TASK_IS_TICKER:
+            case TASK_IS_THREAD:
                 _thisTask->exec();
                 break;
 
-            case TASK_ENABLED_TIMER:
-                static_cast<LoopTimer*>(_thisTask)->poll();
+            case TASK_IS_TIMER:
+                thisTimer()->poll();
                 break;
         }
-        if (_removed) _removed = false;
-        else _thisTask = _thisTask->getPrev();
+        _thisTask = _removed ? nullptr : _thisTask->getPrev();
+        looper::yield();
     }
-
 #if LOOPER_USE_EVENTS
-    while (_events.length()) _sendEvent(_events.pop());
+    while (main && _events.length()) _sendEvent(_events.pop());
 #endif
+}
+
+void LooperClass::_execState(tState state) {
+    if (!_thisTask->hasStates()) return;
+    _thisState = state;
+    _thisTask->exec();
+    _thisState = tState::Loop;
 }
 
 void LooperClass::onEvent(LooperCallback callback) {
@@ -47,98 +64,94 @@ void LooperClass::onEvent(LooperCallback callback) {
 #endif
 }
 
-void LooperClass::restart() {
-    LoopTask* p = _tasks.getLast();
-    while (p) {
-        p->restart();
-        p = p->getPrev();
+void LooperClass::reset() {
+    LoopTask* t = _tasks.getLast();
+    while (t) {
+        t->reset();
+        t = t->getPrev();
     }
 }
 
 uint32_t LooperClass::nextTimerLeft() {
-    uint32_t next = UINT32_MAX;
-    LoopTask* p = _tasks.getLast();
-    uint32_t left = 0;
-    while (p) {
-        switch (p->_tickMask()) {
-            case TASK_ENABLED_THREAD:
-                left = static_cast<LoopThread*>(p)->_tmr.left();
+    uint32_t tmin = UINT32_MAX;
+    LoopTask* t = _tasks.getLast();
+    while (t) {
+        uint32_t left = 0;
+        if (t->_getMask(TASK_SETUP | TASK_EXIT)) return 0;
+
+        switch (t->_getMask(TASK_TYPE_MASK | TASK_DISABLED)) {
+            case TASK_IS_TICKER:
+                return 0;
+
+            case TASK_IS_TIMER:
+                if (!static_cast<LoopTimer*>(t)->running()) goto next;
+                left = static_cast<LoopTimer*>(t)->left();
                 break;
 
-            case TASK_ENABLED_TIMER:
-                left = static_cast<LoopTimer*>(p)->left();
+            case TASK_IS_THREAD:
+                left = static_cast<LoopThread*>(t)->_tmr.left();
                 break;
+
+            default:
+                goto next;
         }
         if (!left) return 0;
-        if (next > left) next = left;
-        p = p->getPrev();
+        if (tmin > left) tmin = left;
+
+    next:
+        t = t->getPrev();
     }
-    return next == UINT32_MAX ? 0 : next;
+    return (tmin == UINT32_MAX) ? 0 : tmin;
 }
 
 uint16_t LooperClass::length() {
-#if LOOPER_USE_EVENTS
-    return _tasks.length() + _lisns.length();
-#else
     return _tasks.length();
-#endif
 }
 
 void LooperClass::delay(uint32_t ms) {
+    // !!! save stack for loop
     uint32_t tmr = looper::millis();
-    LoopTask* taskTemp = _thisTask;
-    if (taskTemp) taskTemp->disable();
+    LoopTask* taskT = _thisTask;
+    tState stateT = _thisState;
+
+    _thisState = tState::Loop;
+    if (taskT) taskT->_pause();
 
     while (looper::millis() - tmr < ms) {
+        loop(false);
         looper::yield();
-        loop();
     }
 
-    if (taskTemp) taskTemp->enable();
-    _thisTask = taskTemp;
+    if (taskT) taskT->_resume();
+    _thisState = stateT;
+    _thisTask = taskT;
 }
 
 void LooperClass::add(LoopTask* task) {
-    if (!task) return;
-
-#if LOOPER_USE_EVENTS
-    task->isListener() ? _lisns.add(task) : _tasks.add(task);
-#else
-    if (!task->isListener()) _tasks.add(task);
-#endif
-}
-
-void LooperClass::remove(LoopTask* task, bool callExit) {
-    if (!task) return;
-    if (callExit) _tickState(task, tState::Exit);
-    if (_thisTask == task) {
-        _removed = true;
-        _thisTask = _thisTask->getPrev();
+    if (task && !task->isAdded()) {
+        task->_markAdded();
+        task->reset();
+        _tasks.add(task);
     }
-
-#if LOOPER_USE_EVENTS
-    task->isListener() ? _lisns.remove(task) : _tasks.remove(task);
-#else
-    if (!task->isListener()) _tasks.remove(task);
-#endif
 }
 
-void LooperClass::_tickState(LoopTask* task, tState state) {
-    if (!task->hasStates()) return;
-    tState stateTemp = _thisState;
-    LoopTask* taskTemp = _thisTask;
-    _thisState = state;
-    _thisTask = task;
-    task->exec();
-    _thisState = stateTemp;
-    _thisTask = taskTemp;
+void LooperClass::remove(LoopTask* task, bool) {
+    if (task) task->_markExit();
+}
+
+void LooperClass::_removeNow(LoopTask* task) {
+    if (task && task->isAdded()) {
+        task->_markRemoved();
+        _tasks.remove(task);
+        _removed = true;
+    }
 }
 
 void LooperClass::removeThis(bool callExit) {
-    remove(thisTask(), callExit);
+    remove(_thisTask, callExit);
 }
 
-LoopTask* LooperClass::thisTask() { return _removed ? nullptr : _thisTask; }
+LoopTask* LooperClass::thisTask() { return _thisTask; }
 LoopTimer* LooperClass::thisTimer() { return thisTaskAs<LoopTimer>(); }
 LoopThread* LooperClass::thisThread() { return thisTaskAs<LoopThread>(); }
 tState LooperClass::thisState() { return _thisState; }
@@ -149,7 +162,7 @@ bool LooperClass::thisLoop() { return _thisState == tState::Loop; }
 
 bool LooperClass::eventBroadcast() {
 #if LOOPER_USE_EVENTS
-    return _broadcast;
+    return _thisBroad;
 #else
     return 0;
 #endif
@@ -157,14 +170,14 @@ bool LooperClass::eventBroadcast() {
 
 LoopTask* LooperClass::eventSource() {
 #if LOOPER_USE_EVENTS
-    return _source;
+    return _thisSource;
 #else
     return nullptr;
 #endif
 }
 void* LooperClass::eventData() {
 #if LOOPER_USE_EVENTS
-    return _thisState == tState::Event ? _data : nullptr;
+    return _thisData;
 #else
     return nullptr;
 #endif
@@ -176,38 +189,35 @@ void LooperClass::_sendEvent(EventData& evt) {
 
 void LooperClass::sendEvent(hash_t id, void* data) {
 #if LOOPER_USE_EVENTS
-    LoopTask* source = _thisTask;
-    tState stateTemp = _thisState;
-    _thisState = tState::Event;
+    LoopTask* sourceT = _thisSource;
+    LoopTask* taskT = _thisTask;
+    tState stateT = _thisState;
+    bool broadT = _thisBroad;
+    void* dataT = _thisData;
 
-    if (_event_cb) {
-        _broadcast = (id == 0);
-        _data = data;
-        _source = _thisTask;
-        _event_cb(id);
-    }
+    _thisState = tState::Event;
+    _thisSource = _thisTask;
+    _thisBroad = (id == 0);
+    _thisData = data;
+
+    if (_event_cb) _event_cb(id);
 
 #if LOOPER_USE_ID
-    for (uint8_t i = 0; i < LP_LIST_AMOUNT; i++) {
-        _thisTask = _getList(i)->getLast();
-        while (_thisTask) {
-            if (_thisTask->id() && _thisTask->canListen() && (!id || _thisTask->id() == id)) {
-                _data = data;
-                _broadcast = (id == 0);
-                _source = source;
-                _thisTask->exec();
-                looper::yield();
-            }
-            if (_removed) _removed = false;
-            else _thisTask = _thisTask->getPrev();
+    _thisTask = _tasks.getLast();
+    while (_thisTask) {
+        if (_thisTask->id() && _thisTask->canListen() && (_thisBroad || _thisTask->id() == id)) {
+            _thisTask->exec();
+            looper::yield();
         }
+        _thisTask = _removed ? nullptr : _thisTask->getPrev();
     }
 #endif
 
-    _broadcast = false;
-    _source = nullptr;
-    _thisTask = source;
-    _thisState = stateTemp;
+    _thisSource = sourceT;
+    _thisBroad = broadT;
+    _thisState = stateT;
+    _thisData = dataT;
+    _thisTask = taskT;
 #endif
 }
 
@@ -228,14 +238,12 @@ bool LooperClass::pushEvent(const char* id, void* data) {
 }
 
 LoopTask* LooperClass::getTask(hash_t id) {
-#if LOOPER_USE_EVENTS
+#if LOOPER_USE_ID
     if (!id) return nullptr;
-    for (uint8_t i = 0; i < LP_LIST_AMOUNT; i++) {
-        LoopTask* p = _getList(i)->getLast();
-        while (p) {
-            if (p->id() == id) return p;
-            p = p->getPrev();
-        }
+    LoopTask* t = _tasks.getLast();
+    while (t) {
+        if (t->id() == id) return t;
+        t = t->getPrev();
     }
 #endif
     return nullptr;
@@ -267,9 +275,3 @@ LoopThread* LooperClass::getThread(hash_t id) {
 LoopThread* LooperClass::getThread(const char* id) {
     return getThread(LPHr(id));
 }
-
-#if LOOPER_USE_EVENTS
-looper::List<LoopTask>* LooperClass::_getList(uint8_t idx) {
-    return (looper::List<LoopTask>*[]){&_tasks, &_lisns}[idx];
-}
-#endif

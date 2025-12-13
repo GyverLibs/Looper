@@ -4,7 +4,7 @@
 // таймер на одно отложенное срабатывание
 LP_TIMER(1000, []() {
     Serial.println("timer stop!");
-    Looper.thisTimer()->stop();
+    LP.thisTimer()->stop();
 });
 
 void setup() {
@@ -12,5 +12,5 @@ void setup() {
 }
 
 void loop() {
-    Looper.loop();
+    LP.loop();
 }

@@ -1,14 +1,14 @@
 #pragma once
 #include "../utils/SimpleTimer.h"
-#include "CallbackData.h"
-#include "LoopTask.h"
+#include "./CallbackData.h"
+#include "./LoopTask.h"
 
 // задача-поток, вызывается постоянно
 class LoopThread : public LoopTask {
    public:
     LoopThread(TaskCallback callback) : LoopThread((hash_t)0, callback) {}
     LoopThread(const char* id, TaskCallback callback) : LoopThread(LPHr(id), callback) {}
-    LoopThread(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_IS_THREAD, true, true) {}
+    LoopThread(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_IS_THREAD, false) {}
 
     // перезапустить поток
     void restart() {
@@ -36,6 +36,6 @@ class LoopThreadData : public LoopThread, public TaskCallbackData<T> {
     using LoopTask::detach;
 
     static void _exec() {
-        Looper.thisTaskAs<LoopThreadData<T>>()->TaskCallbackData<T>::exec();
+        LP.thisTaskAs<LoopThreadData<T>>()->TaskCallbackData<T>::exec();
     }
 };

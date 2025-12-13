@@ -6,10 +6,10 @@
 #define LP_BROADCAST (hash_t)0
 
 // отправить событие
-#define LP_SEND_EVENT(id, data) Looper.sendEvent(LPH(id), data)
+#define LP_SEND_EVENT(id, data) LP.sendEvent(LPH(id), data)
 
 // отложить отправку события
-#define LP_PUSH_EVENT(id, data) Looper.pushEvent(LPH(id), data)
+#define LP_PUSH_EVENT(id, data) LP.pushEvent(LPH(id), data)
 
 #define LP_MAKE(type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(__VA_ARGS__)
 #define LP_MAKE_(id, type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), __VA_ARGS__)
@@ -28,7 +28,7 @@
 #define LP_TIMER_(id, ms, ...) LP_MAKE_(id, LoopTimer, ms, __VA_ARGS__)
 
 // THREAD
-#define _LP_THREAD_CASE Looper.thisThread()->_case
+#define _LP_THREAD_CASE LP.thisThread()->_case
 #define _LP_THREAD_RESET() _LP_THREAD_CASE = 0;
 
 // начать поток
@@ -75,13 +75,13 @@
     } while (0);
 
 // асинхронно ждать события
-#define LP_WAIT_EVENT() LP_WAIT(Looper.thisEvent());
+#define LP_WAIT_EVENT() LP_WAIT(LP.thisEvent());
 
 // асинхронно ждать время в мс
-#define LP_DELAY(ms)                                  \
-    do {                                              \
-        Looper.thisThread()->_tmr.restart(ms);        \
-        LP_WAIT(Looper.thisThread()->_tmr.timeout()); \
+#define LP_DELAY(ms)                              \
+    do {                                          \
+        LP.thisThread()->_tmr.restart(ms);        \
+        LP_WAIT(LP.thisThread()->_tmr.timeout()); \
     } while (0);
 
 // освободить семафор

@@ -8,14 +8,9 @@ struct Flags {
     // пакет флагов
     uint8_t flags = 0;
 
-    // получить маску
-    inline uint8_t mask(const uint8_t x) const __attribute__((always_inline)) {
-        return flags & x;
-    }
-
     // прочитать
     inline bool read(const uint8_t x) const __attribute__((always_inline)) {
-        return flags & x;
+        return mask(x);
     }
 
     // установить биты
@@ -33,19 +28,24 @@ struct Flags {
         v ? set(x) : clear(x);
     }
 
+    // получить маску
+    inline uint8_t mask(const uint8_t x) const __attribute__((always_inline)) {
+        return flags & x;
+    }
+
     // стоят все биты в маске
     inline bool isSet(const uint8_t x) const __attribute__((always_inline)) {
-        return (flags & x) == x;
+        return mask(x) == x;
     }
 
     // очищены все биты в маске
     inline bool isClear(const uint8_t x) const __attribute__((always_inline)) {
-        return !(flags & x);
+        return !mask(x);
     }
 
     // сравнить маску со значением
     inline bool compare(const uint8_t x, const uint8_t y) const __attribute__((always_inline)) {
-        return (flags & x) == y;
+        return mask(x) == y;
     }
 };
 
