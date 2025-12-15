@@ -5,7 +5,7 @@ class LoopHello : public LoopTimerBase {
    public:
     LoopHello(uint32_t ms) : LoopTimerBase(ms) {}
 
-    void exec() {
+    void exec() override {
         Serial.println("hello!");
     }
 };

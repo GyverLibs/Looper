@@ -11,12 +11,12 @@ class List {
         friend class List;
 
        public:
-        inline T* getPrev() {
-            return _prev;
+        inline T* getNext() {
+            return _next;
         }
 
        private:
-        T* _prev = nullptr;
+        T* _next = nullptr;
     };
 
     // добавить
@@ -27,73 +27,75 @@ class List {
     // добавить
     bool add(T* node) {
         if (!node) return false;
-        node->_prev = _last;
-        _last = node;
+
+        node->_next = _first;
+        _first = node;
         return true;
     }
 
+    // удалить
+    T* remove(T& node) {
+        return remove(&node);
+    }
+
+    // удалить. Вернёт указатель на прошлое звено
+    T* remove(T* node) {
+        if (!node) return nullptr;
+
+        if (_first == node) {
+            _first = node->_next;
+            return nullptr;
+        }
+
+        T* p = _first;
+        while (p) {
+            if (p->_next == node) {
+                p->_next = node->_next;
+                return p;
+            }
+            p = p->_next;
+        }
+        return nullptr;
+    }
+
     // список содержит
-    bool has(T& node) {
+    bool has(T& node) const {
         return has(&node);
     }
 
     // список содержит
-    bool has(T* node) {
-        T* p = _last;
+    bool has(T* node) const {
+        T* p = _first;
         while (p) {
             if (p == node) return true;
-            p = p->_prev;
-        }
-        return false;
-    }
-
-    // удалить
-    bool remove(T& node) {
-        return remove(&node);
-    }
-
-    // удалить
-    bool remove(T* node) {
-        if (!node) return false;
-        if (_last == node) {
-            _last = _last->_prev;
-            return true;
-        } else {
-            T* p = _last;
-            while (p) {
-                if (p->_prev == node) {
-                    p->_prev = p->_prev->_prev;
-                    return true;
-                }
-                p = p->_prev;
-            }
+            p = p->_next;
         }
         return false;
     }
 
     // длина списка
-    size_t length() {
+    size_t length() const {
         size_t len = 0;
-        T* p = _last;
+        T* p = _first;
         while (p) {
             len++;
-            p = p->_prev;
+            p = p->_next;
         }
         return len;
     }
 
     // очистить список
     void clear() {
-        _last = nullptr;
+        _first = nullptr;
     }
 
-    // получить последний элемент в списке
-    inline T* getLast() {
-        return _last;
+    // получить первый элемент в списке
+    inline T* getFirst() const {
+        return _first;
     }
 
    private:
-    T* _last = nullptr;
+    T* _first = nullptr;
 };
 
 }  // namespace looper

@@ -8,7 +8,7 @@ class LoopThread : public LoopTask {
    public:
     LoopThread(TaskCallback callback) : LoopThread((hash_t)0, callback) {}
     LoopThread(const char* id, TaskCallback callback) : LoopThread(LPHr(id), callback) {}
-    LoopThread(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_IS_THREAD, false) {}
+    LoopThread(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_TYPE_THREAD, false) {}
 
     // перезапустить поток
     void restart() {

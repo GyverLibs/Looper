@@ -9,7 +9,7 @@ class LoopButton : public LoopTickerBase {
         pinMode(pin, INPUT_PULLUP);
     }
 
-    void exec() {
+    void exec() override {
         if (!digitalRead(_pin)) {
             if (!_flag) {
                 _flag = true;

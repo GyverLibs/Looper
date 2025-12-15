@@ -2,50 +2,56 @@
 #include <inttypes.h>
 #include <stddef.h>
 
+#if defined(__GNUC__)
+#define _LP_INLINE __attribute__((always_inline)) inline
+#else
+#define _LP_INLINE inline
+#endif
+
 namespace looper {
 
 struct Flags {
     // пакет флагов
     uint8_t flags = 0;
 
-    // прочитать
-    inline bool read(const uint8_t x) const __attribute__((always_inline)) {
-        return mask(x);
+    // установить маску
+    _LP_INLINE void set(uint8_t mask) {
+        flags |= mask;
     }
 
-    // установить биты
-    inline void set(const uint8_t x) __attribute__((always_inline)) {
-        flags |= x;
+    // очистить маску
+    _LP_INLINE void clear(uint8_t mask) {
+        flags &= uint8_t(~mask);
     }
 
-    // очистить биты
-    inline void clear(const uint8_t x) __attribute__((always_inline)) {
-        flags &= ~x;
+    // записать маску
+    _LP_INLINE void write(uint8_t mask, bool val) {
+        val ? set(mask) : clear(mask);
     }
 
-    // записать
-    inline void write(const uint8_t x, const bool v) __attribute__((always_inline)) {
-        v ? set(x) : clear(x);
+    // записать биты по маске
+    _LP_INLINE void writeBits(uint8_t mask, uint8_t bits) {
+        flags = (flags & uint8_t(~mask)) | (bits & mask);
     }
 
-    // получить маску
-    inline uint8_t mask(const uint8_t x) const __attribute__((always_inline)) {
-        return flags & x;
+    // прочитать маску
+    _LP_INLINE uint8_t read(uint8_t mask) const {
+        return flags & mask;
     }
 
     // стоят все биты в маске
-    inline bool isSet(const uint8_t x) const __attribute__((always_inline)) {
-        return mask(x) == x;
+    _LP_INLINE bool isSet(uint8_t mask) const {
+        return read(mask) == mask;
     }
 
     // очищены все биты в маске
-    inline bool isClear(const uint8_t x) const __attribute__((always_inline)) {
-        return !mask(x);
+    _LP_INLINE bool isClear(uint8_t mask) const {
+        return read(mask) == 0;
     }
 
     // сравнить маску со значением
-    inline bool compare(const uint8_t x, const uint8_t y) const __attribute__((always_inline)) {
-        return mask(x) == y;
+    _LP_INLINE bool compare(uint8_t mask, uint8_t val) const {
+        return read(mask) == val;
     }
 };
 

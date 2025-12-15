@@ -6,9 +6,9 @@ LoopTask::LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states) 
 #if LOOPER_USE_ID
     _id = id;
 #endif
-    _f.set(type & TASK_TYPE_MASK);
-    if (states) _f.set(TASK_STATES);
-    LP.add(this);
+    _reg.writeBits(TASK_MASK_TYPE, type);
+    if (states) _reg.set(TASK_HAS_STATES);
+    addLoop();
 }
 LoopTask::~LoopTask() {
     LP._removeNow(this);
@@ -21,8 +21,12 @@ void LoopTask::removeLoop() {
     LP.remove(this);
 }
 
+bool LoopTask::inLoop() {
+    return _getState() != TASK_STATE_NONE;
+}
+
 void LoopTask::reset() {
-    if (hasStates()) _f.set(TASK_SETUP);
+    if (hasStates() && _getState() == TASK_STATE_LOOP) _setState(TASK_STATE_SETUP);
 }
 
 void LoopTask::exec() {
@@ -44,64 +48,61 @@ hash_t LoopTask::id() {
 }
 
 void LoopTask::enable() {
-    _f.clear(TASK_DISABLED);
+    _reg.clear(TASK_DISABLED);
 }
 void LoopTask::disable() {
-    _f.set(TASK_DISABLED);
+    _reg.set(TASK_DISABLED);
 }
 void LoopTask::toggle() {
     isEnabled() ? disable() : enable();
 }
 bool LoopTask::isEnabled() {
-    return !_f.read(TASK_DISABLED);
+    return !_reg.read(TASK_DISABLED);
 }
 
 bool LoopTask::isTimer() {
-    return getType() == TASK_IS_TIMER;
+    return getType() == TASK_TYPE_TIMER;
 }
 bool LoopTask::isTicker() {
-    return getType() == TASK_IS_TICKER;
+    return getType() == TASK_TYPE_TICKER;
 }
 bool LoopTask::isListener() {
-    return getType() == TASK_IS_LISTENER;
+    return getType() == TASK_TYPE_LISTENER;
 }
 bool LoopTask::isThread() {
-    return getType() == TASK_IS_THREAD;
+    return getType() == TASK_TYPE_THREAD;
 }
 
 uint8_t LoopTask::getType() {
-    return _f.mask(TASK_TYPE_MASK);
-}
-
-bool LoopTask::isAdded() {
-    return _f.read(TASK_ADDED);
+    return _reg.read(TASK_MASK_TYPE);
 }
 
 bool LoopTask::hasStates() {
-    return _f.read(TASK_STATES);
+    return _reg.read(TASK_HAS_STATES);
 }
 bool LoopTask::canListen() {
-    return !isTimer() && !_f.mask(TASK_PAUSED | TASK_DISABLED | TASK_SETUP | TASK_EXIT);
+    switch (_reg.read(TASK_MASK_TYPE | TASK_MASK_STATE | TASK_DISABLED | TASK_SKIPPED)) {
+        case TASK_TYPE_LISTENER | TASK_STATE_LOOP:
+        case TASK_TYPE_TICKER | TASK_STATE_LOOP:
+        case TASK_TYPE_THREAD | TASK_STATE_LOOP:
+            return true;
+    }
+    return false;
 }
 
+void LoopTask::_setState(uint8_t status) {
+    _reg.writeBits(TASK_MASK_STATE, status);
+}
+uint8_t LoopTask::_getState() {
+    return _reg.read(TASK_MASK_STATE);
+}
 uint8_t LoopTask::_getMask(uint8_t mask) {
-    return _f.mask(mask);
+    return _reg.read(mask);
 }
-void LoopTask::_markSettled() {
-    _f.clear(TASK_SETUP);
+
+void LoopTask::_skip() {
+    _reg.set(TASK_SKIPPED);
 }
-void LoopTask::_markExit() {
-    _f.set(TASK_EXIT);
-}
-void LoopTask::_pause() {
-    _f.set(TASK_PAUSED);
-}
-void LoopTask::_resume() {
-    _f.clear(TASK_PAUSED);
-}
-void LoopTask::_markAdded() {
-    _f.set(TASK_ADDED);
-}
-void LoopTask::_markRemoved() {
-    _f.clear(TASK_ADDED);
+void LoopTask::_unskip() {
+    _reg.clear(TASK_SKIPPED);
 }

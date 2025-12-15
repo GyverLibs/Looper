@@ -20,7 +20,7 @@ class LooperClass {
     // вызывать в loop
     void loop(bool main = true);
 
-    // вызвать сигнал setup у всех задач
+    // вызвать сигнал setup у всех задач, а также перезапустить Timer и Thread
     void reset();
 
     // количество задач
@@ -35,8 +35,14 @@ class LooperClass {
     // добавить задачу
     void add(LoopTask* task);
 
-    // убрать задачу (опционально вызвать обработчик выхода)
-    void remove(LoopTask* task, bool callExit = true);
+    // убрать задачу из loop
+    void remove(LoopTask* task);
+
+    // убрать текущую задачу из loop
+    void removeThis();
+
+    // убрать все задачи
+    void removeAll();
 
     // получить указатель на задачу по id
     LoopTask* operator[](hash_t id);
@@ -68,9 +74,6 @@ class LooperClass {
     T* thisTaskAs() {
         return static_cast<T*>(_thisTask);
     }
-
-    // убрать текущую задачу из loop и вызвать обработчик выхода (опционально)
-    void removeThis(bool callExit = true);
 
     // статус текущей задачи
     tState thisState();
@@ -119,7 +122,9 @@ class LooperClass {
     };
 
 #if LOOPER_USE_EVENTS
+#if LOOPER_QUEUE_SIZE
     looper::Stack<EventData, LOOPER_QUEUE_SIZE> _events;
+#endif
     LooperCallback _event_cb = nullptr;
     LoopTask* _thisSource = nullptr;
     void* _thisData = nullptr;
@@ -129,7 +134,6 @@ class LooperClass {
     looper::List<LoopTask> _tasks;
     LoopTask* _thisTask = nullptr;
     tState _thisState = tState::Loop;
-    bool _removed = false;
 
     void _sendEvent(EventData& evt);
     void _execState(tState state);

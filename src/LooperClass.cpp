@@ -11,51 +11,55 @@ LooperClass& Looper = LP;
 
 void LooperClass::loop(bool main) {
     // !!! main loop: _thisTask & _thisState not saved
-    _thisTask = _tasks.getLast();
+    _thisTask = _tasks.getFirst();
 
     while (_thisTask) {
-        if (main) {
-            _removed = false;
-
-            switch (_thisTask->_getMask(TASK_SETUP | TASK_EXIT)) {
-                case TASK_SETUP:
-                case TASK_SETUP | TASK_EXIT:
-                    _thisTask->_markSettled();
+        switch (_thisTask->_getMask(TASK_MASK_STATE | TASK_DISABLED | TASK_SKIPPED)) {
+            case TASK_STATE_SETUP:
+            case TASK_STATE_SETUP | TASK_DISABLED:
+                if (main) {
+                    _thisTask->_setState(TASK_STATE_LOOP);
                     _execState(tState::Setup);
-                    if (_removed) return;
-                    break;
+                }
+                break;
 
-                case TASK_EXIT:
-                    _thisTask->_markRemoved();
-                    _tasks.remove(_thisTask);
+            case TASK_STATE_EXIT:
+            case TASK_STATE_EXIT | TASK_DISABLED:
+                if (main) {
+                    _thisTask->_setState(TASK_STATE_NONE);
+                    LoopTask* prev = _tasks.remove(_thisTask);
                     _execState(tState::Exit);
-                    return;
-            }
-        }
-
-        switch (_thisTask->_getMask(TASK_TYPE_MASK | TASK_DISABLED | TASK_PAUSED | TASK_SETUP | TASK_EXIT)) {
-            case TASK_IS_TICKER:
-            case TASK_IS_THREAD:
-                _thisTask->exec();
+                    _thisTask = prev;
+                }
                 break;
 
-            case TASK_IS_TIMER:
-                thisTimer()->poll();
+            case TASK_STATE_LOOP:
+                switch (_thisTask->_getMask(TASK_MASK_TYPE)) {
+                    case TASK_TYPE_TICKER:
+                    case TASK_TYPE_THREAD:
+                        _thisTask->exec();
+                        break;
+
+                    case TASK_TYPE_TIMER:
+                        thisTimer()->poll();
+                        break;
+                }
                 break;
         }
-        _thisTask = _removed ? nullptr : _thisTask->getPrev();
+        if (_thisTask) _thisTask = _thisTask->getNext();
         looper::yield();
     }
-#if LOOPER_USE_EVENTS
-    while (main && _events.length()) _sendEvent(_events.pop());
+#if LOOPER_USE_EVENTS && LOOPER_QUEUE_SIZE
+    while (_events.length() && main) _sendEvent(_events.pop());
 #endif
 }
 
 void LooperClass::_execState(tState state) {
-    if (!_thisTask->hasStates()) return;
-    _thisState = state;
-    _thisTask->exec();
-    _thisState = tState::Loop;
+    if (_thisTask->hasStates()) {
+        _thisState = state;
+        _thisTask->exec();
+        _thisState = tState::Loop;
+    }
 }
 
 void LooperClass::onEvent(LooperCallback callback) {
@@ -65,30 +69,32 @@ void LooperClass::onEvent(LooperCallback callback) {
 }
 
 void LooperClass::reset() {
-    LoopTask* t = _tasks.getLast();
+    LoopTask* t = _tasks.getFirst();
     while (t) {
         t->reset();
-        t = t->getPrev();
+        if (t->isThread()) static_cast<LoopThread*>(t)->restart();
+        else if (t->isTimer()) static_cast<LoopTimer*>(t)->restart();
+        t = t->getNext();
     }
 }
 
 uint32_t LooperClass::nextTimerLeft() {
     uint32_t tmin = UINT32_MAX;
-    LoopTask* t = _tasks.getLast();
+    LoopTask* t = _tasks.getFirst();
     while (t) {
-        uint32_t left = 0;
-        if (t->_getMask(TASK_SETUP | TASK_EXIT)) return 0;
+        if (t->_getState() != TASK_STATE_LOOP) return 0;
 
-        switch (t->_getMask(TASK_TYPE_MASK | TASK_DISABLED)) {
-            case TASK_IS_TICKER:
+        uint32_t left = 0;
+        switch (t->_getMask(TASK_MASK_TYPE | TASK_DISABLED)) {
+            case TASK_TYPE_TICKER:
                 return 0;
 
-            case TASK_IS_TIMER:
+            case TASK_TYPE_TIMER:
                 if (!static_cast<LoopTimer*>(t)->running()) goto next;
                 left = static_cast<LoopTimer*>(t)->left();
                 break;
 
-            case TASK_IS_THREAD:
+            case TASK_TYPE_THREAD:
                 left = static_cast<LoopThread*>(t)->_tmr.left();
                 break;
 
@@ -99,7 +105,7 @@ uint32_t LooperClass::nextTimerLeft() {
         if (tmin > left) tmin = left;
 
     next:
-        t = t->getPrev();
+        t = t->getNext();
     }
     return (tmin == UINT32_MAX) ? 0 : tmin;
 }
@@ -115,49 +121,56 @@ void LooperClass::delay(uint32_t ms) {
     tState stateT = _thisState;
 
     _thisState = tState::Loop;
-    if (taskT) taskT->_pause();
+    if (taskT) taskT->_skip();
 
     while (looper::millis() - tmr < ms) {
         loop(false);
         looper::yield();
     }
 
-    if (taskT) taskT->_resume();
+    if (taskT) taskT->_unskip();
     _thisState = stateT;
     _thisTask = taskT;
 }
 
 void LooperClass::add(LoopTask* task) {
-    if (task && !task->isAdded()) {
-        task->_markAdded();
-        task->reset();
+    if (task && !task->inLoop()) {
+        task->_setState(task->hasStates() ? TASK_STATE_SETUP : TASK_STATE_LOOP);
         _tasks.add(task);
     }
 }
 
-void LooperClass::remove(LoopTask* task, bool) {
-    if (task) task->_markExit();
+void LooperClass::remove(LoopTask* task) {
+    if (task && task->inLoop()) task->_setState(TASK_STATE_EXIT);
 }
 
-void LooperClass::_removeNow(LoopTask* task) {
-    if (task && task->isAdded()) {
-        task->_markRemoved();
-        _tasks.remove(task);
-        _removed = true;
+void LooperClass::removeThis() {
+    remove(_thisTask);
+}
+
+void LooperClass::removeAll() {
+    LoopTask* t = _tasks.getFirst();
+    while (t) {
+        remove(t);
+        t = t->getNext();
     }
 }
 
-void LooperClass::removeThis(bool callExit) {
-    remove(_thisTask, callExit);
+void LooperClass::_removeNow(LoopTask* task) {
+    if (task && task->inLoop()) {
+        task->_setState(TASK_STATE_NONE);
+        LoopTask* prev = _tasks.remove(task);
+        if (_thisTask == task) _thisTask = prev;
+    }
 }
 
+tState LooperClass::thisState() { return _thisState; }
 LoopTask* LooperClass::thisTask() { return _thisTask; }
 LoopTimer* LooperClass::thisTimer() { return thisTaskAs<LoopTimer>(); }
 LoopThread* LooperClass::thisThread() { return thisTaskAs<LoopThread>(); }
-tState LooperClass::thisState() { return _thisState; }
+bool LooperClass::thisEvent() { return _thisState == tState::Event; }
 bool LooperClass::thisSetup() { return _thisState == tState::Setup; }
 bool LooperClass::thisExit() { return _thisState == tState::Exit; }
-bool LooperClass::thisEvent() { return _thisState == tState::Event; }
 bool LooperClass::thisLoop() { return _thisState == tState::Loop; }
 
 bool LooperClass::eventBroadcast() {
@@ -203,13 +216,16 @@ void LooperClass::sendEvent(hash_t id, void* data) {
     if (_event_cb) _event_cb(id);
 
 #if LOOPER_USE_ID
-    _thisTask = _tasks.getLast();
+    _thisTask = _tasks.getFirst();
     while (_thisTask) {
-        if (_thisTask->id() && _thisTask->canListen() && (_thisBroad || _thisTask->id() == id)) {
+        if (_thisTask->id() &&
+            _thisTask->id() != _thisSource->id() &&
+            (_thisBroad || _thisTask->id() == id) &&
+            _thisTask->canListen()) {
             _thisTask->exec();
             looper::yield();
         }
-        _thisTask = _removed ? nullptr : _thisTask->getPrev();
+        _thisTask = _thisTask ? _thisTask->getNext() : _tasks.getFirst();
     }
 #endif
 
@@ -226,7 +242,7 @@ void LooperClass::sendEvent(const char* id, void* data) {
 }
 
 bool LooperClass::pushEvent(hash_t id, void* data) {
-#if LOOPER_USE_EVENTS
+#if LOOPER_USE_EVENTS && LOOPER_QUEUE_SIZE
     return _events.push(EventData{id, data});
 #else
     return 0;
@@ -240,10 +256,10 @@ bool LooperClass::pushEvent(const char* id, void* data) {
 LoopTask* LooperClass::getTask(hash_t id) {
 #if LOOPER_USE_ID
     if (!id) return nullptr;
-    LoopTask* t = _tasks.getLast();
+    LoopTask* t = _tasks.getFirst();
     while (t) {
         if (t->id() == id) return t;
-        t = t->getPrev();
+        t = t->getNext();
     }
 #endif
     return nullptr;
