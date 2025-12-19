@@ -6,7 +6,7 @@
 class LoopListener : public LoopTask {
    public:
     LoopListener(const char* id, TaskCallback callback) : LoopListener(LPHr(id), callback) {}
-    LoopListener(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_TYPE_LISTENER, false) {}
+    LoopListener(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_TYPE_LISTENER, false, true) {}
 };
 
 // обработчик событий для создания своих классов

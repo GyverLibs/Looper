@@ -23,8 +23,9 @@
 #define TASK_MASK_STATE (TASK_STATE_NONE | TASK_STATE_SETUP | TASK_STATE_LOOP | TASK_STATE_EXIT)
 
 #define TASK_HAS_STATES (1 << 4)
-#define TASK_DISABLED (1 << 5)
-#define TASK_SKIPPED (1 << 6)
+#define TASK_HAS_EVENTS (1 << 5)
+#define TASK_DISABLED (1 << 6)
+#define TASK_SKIPPED (1 << 7)
 
 enum class tState : uint8_t {
     Loop,
@@ -37,7 +38,7 @@ LP_MAKE_CALLBACK(TaskCallback, void);
 
 class LoopTask : public looper::List<LoopTask>::Node {
    public:
-    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states);
+    LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events);
     ~LoopTask();
 
     // добавить в loop
@@ -63,6 +64,18 @@ class LoopTask : public looper::List<LoopTask>::Node {
 
     // id задачи
     hash_t id();
+
+    // включить приём событий
+    void enableEvents();
+
+    // выключить приём событий
+    void disableEvents();
+
+    // включить статусы Setup и Exit
+    void enableStates();
+
+    // выключить статусы Setup и Exit
+    void disableStates();
 
     // включить задачу (статусы Loop и Event)
     void enable();

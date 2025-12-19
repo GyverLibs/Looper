@@ -8,7 +8,7 @@ class LoopTimer : public LoopTask, public SimpleTimer {
    public:
     LoopTimer(uint32_t ms, TaskCallback callback, bool start = true, bool states = false) : LoopTimer((hash_t)0, ms, callback, start, states) {}
     LoopTimer(const char* id, uint32_t ms, TaskCallback callback, bool start = true, bool states = false) : LoopTimer(LPHr(id), ms, callback, start, states) {}
-    LoopTimer(hash_t id, uint32_t ms, TaskCallback callback, bool start = true, bool states = false) : LoopTask(id, callback, TASK_TYPE_TIMER, states), SimpleTimer(ms, start) {}
+    LoopTimer(hash_t id, uint32_t ms, TaskCallback callback, bool start = true, bool states = false) : LoopTask(id, callback, TASK_TYPE_TIMER, states, false), SimpleTimer(ms, start) {}
 
     // опрос таймера
     void poll() {

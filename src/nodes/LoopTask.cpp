@@ -2,12 +2,13 @@
 
 #include "../LooperClass.h"
 
-LoopTask::LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states) : _cb(callback) {
+LoopTask::LoopTask(hash_t id, TaskCallback callback, uint8_t type, bool states, bool events) : _cb(callback) {
 #if LOOPER_USE_ID
     _id = id;
 #endif
-    _reg.writeBits(TASK_MASK_TYPE, type);
-    if (states) _reg.set(TASK_HAS_STATES);
+    _reg.flags = (type & TASK_MASK_TYPE) |
+                 (states ? TASK_HAS_STATES : 0) |
+                 (events ? TASK_HAS_EVENTS : 0);
     addLoop();
 }
 LoopTask::~LoopTask() {
@@ -37,6 +38,22 @@ void LoopTask::attach(TaskCallback callback) {
 }
 void LoopTask::detach() {
     _cb = nullptr;
+}
+
+void LoopTask::enableEvents() {
+    _reg.set(TASK_HAS_EVENTS);
+}
+
+void LoopTask::disableEvents() {
+    _reg.clear(TASK_HAS_EVENTS);
+}
+
+void LoopTask::enableStates() {
+    _reg.set(TASK_HAS_STATES);
+}
+
+void LoopTask::disableStates() {
+    _reg.clear(TASK_HAS_STATES);
 }
 
 hash_t LoopTask::id() {
@@ -81,13 +98,8 @@ bool LoopTask::hasStates() {
     return _reg.read(TASK_HAS_STATES);
 }
 bool LoopTask::canListen() {
-    switch (_reg.read(TASK_MASK_TYPE | TASK_MASK_STATE | TASK_DISABLED | TASK_SKIPPED)) {
-        case TASK_TYPE_LISTENER | TASK_STATE_LOOP:
-        case TASK_TYPE_TICKER | TASK_STATE_LOOP:
-        case TASK_TYPE_THREAD | TASK_STATE_LOOP:
-            return true;
-    }
-    return false;
+    return _reg.compare(TASK_MASK_STATE | TASK_HAS_EVENTS | TASK_SKIPPED | TASK_DISABLED,
+                        TASK_STATE_LOOP | TASK_HAS_EVENTS);
 }
 
 void LoopTask::_setState(uint8_t status) {

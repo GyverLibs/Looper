@@ -7,7 +7,7 @@ class LoopTicker : public LoopTask {
    public:
     LoopTicker(TaskCallback callback) : LoopTicker((hash_t)0, callback) {}
     LoopTicker(const char* id, TaskCallback callback) : LoopTicker(LPHr(id), callback) {}
-    LoopTicker(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_TYPE_TICKER, true) {}
+    LoopTicker(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_TYPE_TICKER, true, true) {}
 };
 
 // тикер для создания своих классов
