@@ -11,8 +11,8 @@
 // отложить отправку события
 #define LP_PUSH_EVENT(id, data) LP.pushEvent(LPH(id), data)
 
-#define LP_MAKE(type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(__VA_ARGS__)
-#define LP_MAKE_(id, type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), __VA_ARGS__)
+#define LP_MAKE(type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(__VA_ARGS__);
+#define LP_MAKE_(id, type, ...) static type _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), __VA_ARGS__);
 #define LP_NEW(type, ...) new type(__VA_ARGS__)
 #define LP_NEW_(id, type, ...) new type(LPH(id), __VA_ARGS__)
 
@@ -46,10 +46,10 @@
     body                       \
     LP_THREAD_END();
 
-#define LP_THREAD(body) static LoopThread _LP_CONCAT(__loop_obj_, __COUNTER__)([]() { _LP_THREAD_INNER(body) })
-#define LP_THREAD_(id, body) static LoopThread _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), []() { _LP_THREAD_INNER(body) })
-#define LP_THREAD_DATA(T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(data, [](data_arg) { _LP_THREAD_INNER(body) })
-#define LP_THREAD_DATA_(id, T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), data, [](data_arg) { _LP_THREAD_INNER(body) })
+#define LP_THREAD(body) static LoopThread _LP_CONCAT(__loop_obj_, __COUNTER__)([]() { _LP_THREAD_INNER(body) });
+#define LP_THREAD_(id, body) static LoopThread _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), []() { _LP_THREAD_INNER(body) });
+#define LP_THREAD_DATA(T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(data, [](data_arg) { _LP_THREAD_INNER(body) });
+#define LP_THREAD_DATA_(id, T, data, data_arg, body) static LoopThreadData<T> _LP_CONCAT(__loop_obj_, __COUNTER__)(LPH(id), data, [](data_arg) { _LP_THREAD_INNER(body) });
 
 // перезапустить поток (начать выполнение с начала)
 #define LP_RESTART()        \
@@ -58,13 +58,16 @@
         return;             \
     } while (0);
 
-// выйти из потока и потом вернуться в эту точку
-#define LP_EXIT()                          \
+// выйти из потока и потом вернуться на следующую строку
+#define LP_SKIP()                          \
     do {                                   \
         _LP_THREAD_CASE = __COUNTER__ + 1; \
         return;                            \
         case __COUNTER__:;                 \
     } while (0);
+
+// выйти из потока и потом вернуться на следующую строку
+#define LP_EXIT() LP_SKIP()
 
 // асинхронно ждать условия
 #define LP_WAIT(cond)                      \

@@ -12,7 +12,7 @@ LP_THREAD({
         digitalWrite(LED_BUILTIN, 0);
         LP_DELAY(500);
     }
-});
+})
 // === blink
 
 // === цикл

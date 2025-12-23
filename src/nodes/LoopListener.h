@@ -5,15 +5,15 @@
 // задача-обработчик событий, вызывается при событии
 class LoopListener : public LoopTask {
    public:
-    LoopListener(const char* id, TaskCallback callback) : LoopListener(LPHr(id), callback) {}
-    LoopListener(hash_t id, TaskCallback callback) : LoopTask(id, callback, TASK_TYPE_LISTENER, false, true) {}
+    LoopListener(const char* id, TaskCallback callback, bool states = false) : LoopListener(LPHr(id), callback, states) {}
+    LoopListener(hash_t id, TaskCallback callback, bool states = false) : LoopTask(id, callback, TASK_TYPE_LISTENER, states, true) {}
 };
 
 // обработчик событий для создания своих классов
 class LoopListenerBase : public LoopListener {
    public:
-    LoopListenerBase(const char* id) : LoopListenerBase(LPHr(id)) {}
-    LoopListenerBase(hash_t id) : LoopListener(id, _exec) {}
+    LoopListenerBase(const char* id, bool states = false) : LoopListenerBase(LPHr(id), states) {}
+    LoopListenerBase(hash_t id, bool states = false) : LoopListener(id, _exec, states) {}
 
     // выполняется при получении события
     virtual void exec() = 0;
@@ -34,8 +34,8 @@ class LoopListenerData : public LoopListener, public TaskCallbackData<T> {
     LP_MAKE_CALLBACK(DataCallback, void, T*);
 
    public:
-    LoopListenerData(const char* id, T* data, DataCallback callback) : LoopListenerData(LPHr(id), data, callback) {}
-    LoopListenerData(hash_t id, T* data, DataCallback callback) : LoopListener(id, _exec), TaskCallbackData<T>(data, callback) {}
+    LoopListenerData(const char* id, T* data, DataCallback callback, bool states = false) : LoopListenerData(LPHr(id), data, callback, states) {}
+    LoopListenerData(hash_t id, T* data, DataCallback callback, bool states = false) : LoopListener(id, _exec, states), TaskCallbackData<T>(data, callback) {}
 
    private:
     using LoopTask::attach;
