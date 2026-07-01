@@ -109,7 +109,7 @@ class LooperClass {
     bool pushEvent(hash_t id, void* data = nullptr);
     bool pushEvent(const char* id, void* data = nullptr);
 
-    // подключить перехватчик событий вида void f(hash_t id, void* data)
+    // подключить перехватчик событий вида void f(hash_t id)
     void onEvent(LooperCallback callback);
 
     // ============ PRIVATE ============

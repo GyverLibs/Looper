@@ -3,7 +3,8 @@
 #include "../platform.h"
 
 SimpleTimer::SimpleTimer(uint32_t ms, bool start) {
-    if (start && ms) restart(ms);
+    _prd = ms;
+    if (start && ms) restart();
 }
 
 void SimpleTimer::restart() {
@@ -14,9 +15,9 @@ void SimpleTimer::restart() {
 void SimpleTimer::restart(uint32_t ms, uint32_t sec, uint16_t min, uint16_t hour, uint16_t day) {
     _prd = ms;
     if (sec) _prd += sec * 1000ul;
-    if (min) _prd += min * 60 * 1000ul;
-    if (hour) _prd += hour * 60 * 60 * 1000ul;
-    if (day) _prd += day * 24 * 60 * 60 * 1000ul;
+    if (min) _prd += (uint32_t)min * 60 * 1000ul;
+    if (hour) _prd += (uint32_t)hour * 60 * 60 * 1000ul;
+    if (day) _prd += (uint32_t)day * 24 * 60 * 60 * 1000ul;
     restart();
 }
 

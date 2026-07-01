@@ -46,7 +46,7 @@ void LooperClass::loop(bool main) {
                 }
                 break;
         }
-        if (_thisTask) _thisTask = _thisTask->getNext();
+        _thisTask = _thisTask ? _thisTask->getNext() : _tasks.getFirst();
         looper::yield();
     }
 #if LOOPER_USE_EVENTS && LOOPER_QUEUE_SIZE
@@ -219,7 +219,7 @@ void LooperClass::sendEvent(hash_t id, void* data) {
     _thisTask = _tasks.getFirst();
     while (_thisTask) {
         if (_thisTask->id() &&
-            _thisTask->id() != _thisSource->id() &&
+            _thisTask != _thisSource &&
             (_thisBroad || _thisTask->id() == id) &&
             _thisTask->canListen()) {
             _thisTask->exec();
